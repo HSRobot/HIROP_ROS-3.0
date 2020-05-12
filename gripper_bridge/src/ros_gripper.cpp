@@ -13,7 +13,7 @@ GripperService::~GripperService()
 
 int GripperService::start()
 {
-    n_gripper.param("/gripper_bridge/gripper_config_path",  gripper_config_path_,
+    n_gripper.param("gripper_config_path",  gripper_config_path_,
                  std::string("/home/ros/work/hirop/config/GripperConfig.yaml"));
     //n_gripper.param("/gripper_bridge/action_config_path",  action_config_path_,
     //             std::string("/home/ros/work/hirop/config/ActionConfig.yaml"));
