@@ -53,6 +53,12 @@ add_service_files(
   SetGripper.srv
   StopGripper.srv
   UploadScene.srv
+  robotConn.srv
+  robotError.srv
+  getForce.srv
+  moveSeqIndex.srv
+  getOnRobotForce.srv
+  setOnRobotForce.srv
 )
 
 generate_messages(

@@ -16,19 +16,20 @@ int DetectorService::start(){
     /**
      *  获取相关参数
      */
-    mNodeHandle.param("/vision_bridge/use_depth", _useDepth, false);
-    mNodeHandle.param("/vision_bridge/use_color", _useColor, true);
-    mNodeHandle.param("/vision_bridge/use_pointcloud2", _use_pointcloud2, false);
-    mNodeHandle.param("/vision_bridge/islazy", _isLazy, true);
-    mNodeHandle.param("/vision_bridge/publish_tf", _publish_tf, false);
-    mNodeHandle.param("/vision_bridge/publish_tf_rate", _publish_tf_rate, 10);
-    mNodeHandle.param("/vision_bridge/rgb_topic", _rgbTopicName, std::string("/camera/image"));
-    mNodeHandle.param("/vision_bridge/depth_topic", _depthTopicName, std::string("/kinect2/qhd/image_depth_rect"));
-    mNodeHandle.param("/vision_bridge/pointcloud2Topic", _pointcloud2TopicName, std::string("/pcl_test_output"));
-    mNodeHandle.param("/vision_bridge/camera_frame", _cameraFrame, std::string("kinect2_rgb_optical_frame"));
-
-    mNodeHandle.param("/vision_bridge/use_camera_softTrriger", _useSoftTrriger, false);
-    mNodeHandle.param("/vision_bridge/camera_softTrrigerTopic", _cameraSoftTrrigerTopicName, std::string("/ensenso_trriger"));
+    std::string ns;
+    ns = mNodeHandle.getNamespace();
+    mNodeHandle.param(ns+"/vision_bridge/use_depth", _useDepth, false);
+    mNodeHandle.param(ns+"/vision_bridge/use_color", _useColor, true);
+    mNodeHandle.param(ns+"/vision_bridge/use_pointcloud2", _use_pointcloud2, false);
+    mNodeHandle.param(ns+"/vision_bridge/islazy", _isLazy, true);
+    mNodeHandle.param(ns+"/vision_bridge/publish_tf", _publish_tf, false);
+    mNodeHandle.param(ns+"/vision_bridge/publish_tf_rate", _publish_tf_rate, 10);
+    mNodeHandle.param(ns+"/vision_bridge/rgb_topic", _rgbTopicName, std::string("/camera/image"));
+    mNodeHandle.param(ns+"/vision_bridge/depth_topic", _depthTopicName, std::string("/kinect2/qhd/image_depth_rect"));
+    mNodeHandle.param(ns+"/vision_bridge/pointcloud2Topic", _pointcloud2TopicName, std::string("/pcl_test_output"));
+    mNodeHandle.param(ns+"/vision_bridge/camera_frame", _cameraFrame, std::string("kinect2_rgb_optical_frame"));
+    mNodeHandle.param(ns+"/vision_bridge/use_camera_softTrriger", _useSoftTrriger, false);
+    mNodeHandle.param(ns+"/vision_bridge/camera_softTrrigerTopic", _cameraSoftTrrigerTopicName, std::string("/ensenso_trriger"));
 
     /**
      *  发布服务
@@ -107,9 +108,9 @@ bool DetectorService::detectionCallback(hirop_msgs::detection::Request &req, hir
 
     //dbg(pointcloud2_ptr.data.size());
     /**
-     *  wait for image
+     *  wait for image  超时
      */
-    for(int i = 0; i < 20; i ++){
+    for(int i = 0; i < 10; i ++){
         if( ( _useColor && color_ptr == false) || ( _useDepth && depth_ptr == false) \
                 ||(_use_pointcloud2 && (pointcloud2_ptr.data.size() > 0) == false)){
             ros::Duration(1.0).sleep();

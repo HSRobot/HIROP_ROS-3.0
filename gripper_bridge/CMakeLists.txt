@@ -40,7 +40,7 @@ include_directories(
   include
 )
 
-#link_directories(/usr/lib/x86_64-linux-gnu/)
+link_directories(/usr/lib/x86_64-linux-gnu/)
 
 add_executable(gripper_bridge
   src/main.cpp

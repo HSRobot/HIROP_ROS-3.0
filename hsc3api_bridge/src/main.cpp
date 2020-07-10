@@ -11,5 +11,5 @@ int main(int argc, char *argv[])
     Hsc3ApiRos s(n);
     s.start();
     ros::waitForShutdown();
-    return 0;
+
 }

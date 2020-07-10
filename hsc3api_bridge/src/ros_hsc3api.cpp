@@ -6,17 +6,21 @@ Hsc3ApiRos::Hsc3ApiRos(ros::NodeHandle n)
     commapi = new CommApi();
     proMo = new ProxyMotion(commapi);
     proIO = new ProxyIO(commapi);
+    proSys = new ProxySys(commapi);
     commapi->setAutoConn(false);//关闭自动重连功能，否则连接失败
 }
 
 Hsc3ApiRos::~Hsc3ApiRos()
 {
-    proIO = NULL;
-    proMo = NULL;
-    commapi = NULL;
+
     delete commapi;
     delete proMo;
     delete proIO;
+    delete proSys;
+    proIO = NULL;
+    proMo = NULL;
+    commapi = NULL;
+    proSys = NULL;
 }
 
 int Hsc3ApiRos::start()
@@ -42,7 +46,8 @@ int Hsc3ApiRos::start()
     move_to = n_hsc3.advertiseService("hsc3MoveTo", &Hsc3ApiRos::moveToCB, this);
     set_workfarm = n_hsc3.advertiseService("hsc3SetWorkFrame", &Hsc3ApiRos::setWorkFrameCB, this);
     set_iodout = n_hsc3.advertiseService("hsc3SetIODout", &Hsc3ApiRos::setIODoutCB, this);
-
+    getRobotConnStatus = n_hsc3.advertiseService("getRobotConnStatus", &Hsc3ApiRos::getRobotConnStatusCB, this);
+    getRobotErrorFault = n_hsc3.advertiseService("getRobotErrorFaultMsg", &Hsc3ApiRos::getRobotErrorFaultCB, this);
     return 0;
 }
 
@@ -208,4 +213,62 @@ bool Hsc3ApiRos::setIODoutCB(hirop_msgs::setIODout::Request &req, hirop_msgs::se
     ret = proIO->setDout(protIo, vlaue);
     res.ret = ret;
     return  ret == 0 ? true : false;
+}
+
+bool Hsc3ApiRos::getRobotConnStatusCB(hirop_msgs::robotConn::Request &req, hirop_msgs::robotConn::Response &res)
+{
+    bool flag = false;
+    if(hsc3ReConnect())
+        flag = true;
+    else
+        flag = false;
+   res.ret =flag;
+   return flag;
+}
+
+/*
+ *
+ *
+ *  ERR_LEVEL_UNKNOWN = 0,
+    ERR_LEVEL_MIN = 1,
+    ERR_LEVEL_INFO = 1,     ///< <em>1</em> - 信息
+    ERR_LEVEL_NOTE,         ///< <em>2</em> - 提示
+    ERR_LEVEL_WARNING,      ///< <em>3</em> - 警告
+    ERR_LEVEL_ERROR,        ///< <em>4</em> - 错误
+    ERR_LEVEL_FATAL,        ///< <em>5</em> - 严重错误
+    ERR_LEVEL_MAX,
+ *
+ */
+
+bool Hsc3ApiRos::getRobotErrorFaultCB(hirop_msgs::robotErrorRequest &req, hirop_msgs::robotErrorResponse &res)
+{
+    hsc3ReConnect();
+std::cout<<"进入回调:"<<std::endl;
+    req;
+    uint64_t errCode;
+    std::string strReason, strElim;
+    ErrLevel level;
+//    uint64_t  code,
+//    std::string str_msg;
+    std::cout<<"阻塞中"<<std::endl;
+    Hsc3::Comm::HMCErrCode code = proSys->getMessage(level, errCode,strReason, 5000 );
+    std::cout<<"阻塞结束"<<std::endl;
+//    Hsc3::Comm::HMCErrCode code =proSys->queryError(errCode, strReason, strElim);
+
+    std::cout<<"code:"<<errCode<<std::endl;
+    std::cout<<"strMsg:"<<strReason<<std::endl;
+    if(code >1 ){
+        res.isError = false;
+        return false;
+    }
+    else if(errCode > 1 )
+    {
+        res.isError = true;
+        res.errorMsg = strReason;
+        res.dealMsg = strElim;
+    }else{
+        res.isError = false;
+
+    }
+    return true;
 }
