@@ -3,6 +3,7 @@
 #include <iostream>
 #include <ros/ros.h>
 #include <iostream>
+#include <hirop_msgs/setStopProject.h>
 
 #include "hirop_msgs/moveTo.h"
 #include "hirop_msgs/setOpMode.h"
@@ -13,12 +14,16 @@
 #include "hirop_msgs/setIODout.h"
 #include "hirop_msgs/robotConn.h"
 #include "hirop_msgs/robotError.h"
-
+#include "hirop_msgs/setStartUpProject.h"
+#include "hirop_msgs/setStopProject.h"
 #include "CommApi.h"
 #include "Hsc3Def.h"
 #include "proxy/ProxyMotion.h"
 #include "proxy/ProxyIO.h"
 #include "proxy/ProxySys.h"
+#include "proxy/ProxyVm.h"
+#include "proxy/ProxyVar.h"
+#include <atomic>
 using namespace std;
 using namespace Hsc3::Comm;
 using namespace Hsc3::Proxy;
@@ -43,14 +48,15 @@ public:
     bool setIODoutCB(hirop_msgs::setIODout::Request& req, hirop_msgs::setIODout::Response& res);
     bool getRobotConnStatusCB(hirop_msgs::robotConn::Request& req, hirop_msgs::robotConn::Response& res);
     bool getRobotErrorFaultCB(hirop_msgs::robotErrorRequest &req, hirop_msgs::robotErrorResponse& res);
-
-
+    bool setStartUpProject(hirop_msgs::setStartUpProject::Request &req, hirop_msgs::setStartUpProject::Response &res);
+    bool setStopProject(hirop_msgs::setStopProject::Request &req,hirop_msgs::setStopProject::Response & res);
 private:
     CommApi *commapi;
     ProxyMotion *proMo;
     ProxyIO *proIO;
     ProxySys *proSys;
-
+    ProxyVm * proVm;
+    ProxyVar *proVar;
     ros::NodeHandle n_hsc3;
 
     ros::ServiceServer move_to;
@@ -61,11 +67,13 @@ private:
     ros::ServiceServer set_workfarm;
     ros::ServiceServer set_iodout;
     ros::ServiceServer getRobotConnStatus;
-    ros::ServiceServer getRobotErrorFault;
+    ros::ServiceServer setStartUpProjectSer;
+    ros::ServiceServer setStopProjectSer;
 
     std::string robotIp_;
     int robotPort_;
-
+    string progname;
+    atomic<bool> stopProgram;
     const static int8_t gpId = 0;
     HMCErrCode ret;
 };

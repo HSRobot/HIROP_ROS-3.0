@@ -7,6 +7,8 @@ Hsc3ApiRos::Hsc3ApiRos(ros::NodeHandle n)
     proMo = new ProxyMotion(commapi);
     proIO = new ProxyIO(commapi);
     proSys = new ProxySys(commapi);
+    proVm = new ProxyVm(commapi);
+    proVar = new ProxyVar(commapi);
     commapi->setAutoConn(false);//关闭自动重连功能，否则连接失败
 }
 
@@ -27,7 +29,7 @@ int Hsc3ApiRos::start()
 {
     ret = -1;
 
-    n_hsc3.param("/hsc3api_bridge/hsc3_robotIP", robotIp_, std::string("10.10.56.214"));
+    n_hsc3.param("/hsc3api_bridge/hsc3_robotIP", robotIp_, std::string("192.168.98.2"));
     n_hsc3.param("/hsc3api_bridge/hsc3_robotPort", robotPort_, int(23234));
 
     ROS_INFO("robotIp_: %s",robotIp_.c_str());
@@ -47,7 +49,10 @@ int Hsc3ApiRos::start()
     set_workfarm = n_hsc3.advertiseService("hsc3SetWorkFrame", &Hsc3ApiRos::setWorkFrameCB, this);
     set_iodout = n_hsc3.advertiseService("hsc3SetIODout", &Hsc3ApiRos::setIODoutCB, this);
     getRobotConnStatus = n_hsc3.advertiseService("getRobotConnStatus", &Hsc3ApiRos::getRobotConnStatusCB, this);
-    getRobotErrorFault = n_hsc3.advertiseService("getRobotErrorFaultMsg", &Hsc3ApiRos::getRobotErrorFaultCB, this);
+
+    setStartUpProjectSer = n_hsc3.advertiseService("setStartUpProject", &Hsc3ApiRos::setStartUpProject, this);
+    setStopProjectSer = n_hsc3.advertiseService("setStopProject", &Hsc3ApiRos::setStopProject, this);
+
     return 0;
 }
 
@@ -242,21 +247,10 @@ bool Hsc3ApiRos::getRobotConnStatusCB(hirop_msgs::robotConn::Request &req, hirop
 
 bool Hsc3ApiRos::getRobotErrorFaultCB(hirop_msgs::robotErrorRequest &req, hirop_msgs::robotErrorResponse &res)
 {
-    hsc3ReConnect();
-std::cout<<"进入回调:"<<std::endl;
     req;
     uint64_t errCode;
     std::string strReason, strElim;
-    ErrLevel level;
-//    uint64_t  code,
-//    std::string str_msg;
-    std::cout<<"阻塞中"<<std::endl;
-    Hsc3::Comm::HMCErrCode code = proSys->getMessage(level, errCode,strReason, 5000 );
-    std::cout<<"阻塞结束"<<std::endl;
-//    Hsc3::Comm::HMCErrCode code =proSys->queryError(errCode, strReason, strElim);
-
-    std::cout<<"code:"<<errCode<<std::endl;
-    std::cout<<"strMsg:"<<strReason<<std::endl;
+    Hsc3::Comm::HMCErrCode code =proSys->queryError(errCode, strReason, strElim);
     if(code >1 ){
         res.isError = false;
         return false;
@@ -270,5 +264,76 @@ std::cout<<"进入回调:"<<std::endl;
         res.isError = false;
 
     }
+    return true;
+}
+
+bool Hsc3ApiRos::setStartUpProject(hirop_msgs::setStartUpProject::Request &req, hirop_msgs::setStartUpProject::Response &res)
+{
+    ROS_INFO_STREAM("setStartUpProject ...");
+     if(!hsc3ReConnect()){
+         res.ret = -1;
+         return false;
+     }
+     ROS_INFO_STREAM("hsc3ReConnect ...");
+
+     bool en;
+     // anzhuang
+     ret = proMo->getGpEn(0,en);
+     if(ret != 0){
+         res.ret = -2;
+         return false;
+     }
+
+     /************************/
+     stopProgram = false;
+     const string path = "./script";
+
+     // load program
+     progname = req.programName;
+     ret = proVm->load(path,progname);
+     if(ret != 0){
+         res.ret = -3;
+         return false;
+     }
+
+	 sleep(1);
+     // start program
+     ret = proVm->start(progname);
+     if(ret != 0){
+         res.ret = -4;
+         return false;
+     }
+
+     double wait = 0;
+     ROS_INFO_STREAM("hsc3 Say GoodBye action ......");
+     proVar->setR(10,0);
+     while(!stopProgram)
+     {
+         proVar->getR(10,wait);
+         if(wait == 1)
+             break;
+         usleep(100000);
+     }
+     if(stopProgram){
+         proVm->stop(progname);
+         res.ret = -5;
+         ret = proVm->unload(progname);
+         ROS_INFO_STREAM("hsc3 Say GoodBye action stop ......");
+
+         return true;
+     }
+
+     ret = proVm->unload(progname);
+     ROS_INFO_STREAM("hsc3 Say GoodBye action fisnish......");
+
+     res.ret = 0;
+     return true;
+}
+
+bool Hsc3ApiRos::setStopProject(hirop_msgs::setStopProject::Request &req, hirop_msgs::setStopProject::Response &res)
+{
+
+    stopProgram = true;
+    res.ret = 0;
     return true;
 }

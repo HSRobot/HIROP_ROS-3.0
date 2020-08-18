@@ -8,7 +8,7 @@
 
 #include <hirop_msgs/StartListen.h>
 #include <hirop_msgs/StopListen.h>
-
+#include "std_msgs/Int16.h"
 using namespace HIROP::ASR;
 
 class RosAudioSource : public GetIntentListener{
@@ -26,7 +26,7 @@ private:
 
     int wdir;
 
-    ros::Publisher intentPusher;
+    ros::Publisher intentPusher,getStatusPub;
 
     ros::NodeHandle _n;
 
@@ -45,6 +45,7 @@ public:
 
         stopServer = _n.advertiseService("/stop_listen", &RosAudioSource::onStop, this);
 
+        getStatusPub = _n.advertise<std_msgs::Int16>("/getAiuiStatus",1);
         hasr->init();
 
         hasr->setIntentListener(this);
@@ -83,6 +84,13 @@ public:
             }
 
             hasr->updateAudioData(buffer, size);
+            //
+           // if (!checkNet())
+            //{
+             //   std_msgs::Int16 msg;
+              //  msg.data = 404;
+                //getStatusPub.publish(msg);
+            //}
 
         }
 
@@ -142,6 +150,52 @@ public:
 
     }
 
+    bool checkNet()
+    {
+        /*
+           -c 2（代表ping次数，ping 2次后结束ping操作） -w 2（代表超时时间，2秒后结束ping操作）
+        */
+     // system("ping www.google.com -c 2 -w 2 >netlog.bat");
+        system("ping www.baidu.com -c 2 -w 2 >netlog.bat");
+        sleep(2);
+
+        //把文件一行一行读取放入vector
+        ifstream infile;
+        infile.open("netlog.bat");
+        string s;
+        vector<string> v;
+        while(infile)
+        {
+            getline(infile,s);
+            if(infile.fail())
+                break;
+            v.push_back(s);
+        }
+        infile.close();
+
+        //读取倒数第二行 2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+        if (v.size() > 1)
+        {
+            string data = v[v.size()-2];
+            int iPos = data.find("received,");
+            if (iPos != -1 )
+            {
+                data = data.substr(iPos+10,3);//截取字符串返回packet loss
+                int  n = atoi(data.c_str());
+                if(n == 0)
+                 return 1;
+                else
+                return 0 ;
+            }
+
+        }else{
+            return 0;
+        }
+
+
+    }
+
+
     bool onStart(hirop_msgs::StartListen::Request &req, hirop_msgs::StartListen::Response &rep){
 
         std::cout << "start listen" << std::endl;
@@ -150,7 +204,7 @@ public:
 
         rep.reuslt = 0;
 
-        onGetIntent(NULL);
+        //onGetIntent(NULL);
 
         return true;
     }

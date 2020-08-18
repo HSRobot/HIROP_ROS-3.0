@@ -10,6 +10,9 @@ add_custom_target(${PROJECT_NAME}_OTHER_FILES ALL WORKING_DIRECTORY ${PROJECT_SO
 
 find_package(catkin REQUIRED COMPONENTS
   message_generation
+  moveit_core
+  moveit_ros_planning_interface
+  moveit_ros_perception
   roscpp
   tf
   std_msgs
@@ -46,6 +49,7 @@ add_dependencies(pickplace_bridge ${hirop_msgs_EXPORTED_TARGETS}　${${PROJECT_N
 target_link_libraries(pickplace_bridge
   ${hirop_pickplace_LIBRARIES}
   ${catkin_LIBRARIES}
+  -lyaml-cpp
 )
 
 

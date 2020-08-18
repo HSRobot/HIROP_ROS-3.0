@@ -3,6 +3,7 @@
 #include <cv_bridge/cv_bridge.h>
 //#include "dbg.h"
 #include "std_msgs/Bool.h"
+#include "rosconsole/macros_generated.h"
 using namespace ros;
 
 DetectorService::DetectorService(NodeHandle n){
@@ -24,13 +25,15 @@ int DetectorService::start(){
     mNodeHandle.param(ns+"/vision_bridge/islazy", _isLazy, true);
     mNodeHandle.param(ns+"/vision_bridge/publish_tf", _publish_tf, false);
     mNodeHandle.param(ns+"/vision_bridge/publish_tf_rate", _publish_tf_rate, 10);
-    mNodeHandle.param(ns+"/vision_bridge/rgb_topic", _rgbTopicName, std::string("/camera/image"));
+    mNodeHandle.param(ns+"/vision_bridge/rgb_topic", _rgbTopicName, std::string("/camera_base/color/image_raw"));
     mNodeHandle.param(ns+"/vision_bridge/depth_topic", _depthTopicName, std::string("/kinect2/qhd/image_depth_rect"));
     mNodeHandle.param(ns+"/vision_bridge/pointcloud2Topic", _pointcloud2TopicName, std::string("/pcl_test_output"));
-    mNodeHandle.param(ns+"/vision_bridge/camera_frame", _cameraFrame, std::string("kinect2_rgb_optical_frame"));
+    mNodeHandle.param(ns+"/vision_bridge/camera_frame", _cameraFrame, std::string("camera_color_optical_frame"));
     mNodeHandle.param(ns+"/vision_bridge/use_camera_softTrriger", _useSoftTrriger, false);
     mNodeHandle.param(ns+"/vision_bridge/camera_softTrrigerTopic", _cameraSoftTrrigerTopicName, std::string("/ensenso_trriger"));
 
+    _isLazy = true;
+    ROS_ERROR_STREAM(" /vision_bridge/rgb_topic: "<<_rgbTopicName.c_str());
     /**
      *  发布服务
      */
@@ -61,6 +64,7 @@ int DetectorService::start(){
     if(_useSoftTrriger)
         cameraSoftTrrigerSub = mNodeHandle.advertise<std_msgs::Bool>(_cameraSoftTrrigerTopicName, 1);
 
+    _publish_tf = false;
     if(_publish_tf){
         boost::function0<void> f =  boost::bind(&DetectorService::publishObjectTf,this);
         publishTfThread = new boost::thread(f);
@@ -95,6 +99,7 @@ bool DetectorService::detectionCallback(hirop_msgs::detection::Request &req, hir
     if(_useDepth && _isLazy)
         depthImgSub = mNodeHandle.subscribe(_depthTopicName, 1, &DetectorService::depthImgCB, this);
 
+    std::cout << "_useColor: "<<_useColor<<" _isLazy "<<_isLazy<<std::endl;
     if(_useColor && _isLazy)
         colorImgSub = mNodeHandle.subscribe(_rgbTopicName, 1, &DetectorService::colorImgCB, this);
 
@@ -155,10 +160,13 @@ bool DetectorService::detectionCallback(hirop_msgs::detection::Request &req, hir
         pcl::copyPointCloud(pointcloud2_ptr, tempPointCloud);
 
     //测试代码
-    if(_use_pointcloud2)
-        mDetectorPtr->detectionOnce(depth, color,tempPointCloud);
-    else
-        mDetectorPtr->detectionOnce(depth, color);
+    if(_use_pointcloud2){
+        res.result = mDetectorPtr->detectionOnce(depth, color,tempPointCloud);
+    }
+    else{
+        res.result = mDetectorPtr->detectionOnce(depth, color);
+    }
+    ROS_ERROR_STREAM("res.result: "<<res.result);
 
     return true;
 }

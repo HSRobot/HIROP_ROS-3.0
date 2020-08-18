@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   std_msgs
   geometry_msgs
+  trajectory_msgs
 )
 
 add_message_files(
@@ -12,6 +13,11 @@ add_message_files(
   ObjectArray.msg
   ObjectInfo.msg
   GeneralPos.msg
+joints_angle.msg  
+robotMotionGroup.msg  
+robotMotionTraject.msg
+loadJointData.msg
+shakeHandStatus.msg
 )
 
 add_service_files(
@@ -59,14 +65,37 @@ add_service_files(
   moveSeqIndex.srv
   getOnRobotForce.srv
   setOnRobotForce.srv
+  setStopProject.srv
+  setStartUpProject.srv
+motionBridgeStart.srv
+moveLine.srv
+moveSigleAixs.srv
+moveToMultiPose.srv
+moveToSiglePose.srv
+shakeHandSet.srv
+
+dualRbtraject.srv      
+pickPlaceData.srv
+setVelocityAccelerated.srv
+
+loadPoseData.srv  
+saveJointData.srv
+loadJointsData.srv  
+saveDataEnd.srv   
+savePoseData.srv
+setRobotType.srv
 )
 
 generate_messages(
   DEPENDENCIES
   std_msgs
   geometry_msgs
+  trajectory_msgs
 )
 
 catkin_package(
-  CATKIN_DEPENDS  std_msgs
+  CATKIN_DEPENDS  
+  std_msgs 
+  geometry_msgs 
+  trajectory_msgs
 )

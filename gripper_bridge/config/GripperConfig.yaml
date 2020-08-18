@@ -1,6 +1,6 @@
 parameters: 
   insprie: 
-    serialNum: /dev/ttyUSB0
+    serialNum: /dev/GripperDriver0
     baudrate: 115200
     speed: 500
     force: 200

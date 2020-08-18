@@ -4,7 +4,7 @@
 int main(int argc, char *argv[])
 {
     ros::init(argc, argv, "pickplace_bridge");
-    ros::NodeHandle n;
+    ros::NodeHandle n("~");
     ros::AsyncSpinner as(4);
     as.start();
 
@@ -12,4 +12,4 @@ int main(int argc, char *argv[])
     s.start();
     ros::waitForShutdown();
     return 0;
-} 
+}

@@ -15,10 +15,24 @@ PickPlaceService::~PickPlaceService()
 int PickPlaceService::start()
 {
 
-    n_pick.param("/pickplace_bridge/generator_config_path",  generator_config_path_,
+    // n_pick.param("/pickplace_bridge/generator_config_path",  generator_config_path_,
+    //              std::string("/home/fshs/work/hirop/config/ClassicGenConfig.yaml"));
+    // n_pick.param("/pickplace_bridge/actuator_config_path",   actuator_config_path_,
+    //              std::string("/home/fshs/work/hirop/config/ClassicPPConfig.yaml"));
+
+    // n_pick.param("/pickplace_bridge/move_group_name", arm, std::string("arm1"));
+
+    n_pick.param("generator_config_path",  generator_config_path_,
                  std::string("/home/fshs/work/hirop/config/ClassicGenConfig.yaml"));
-    n_pick.param("/pickplace_bridge/actuator_config_path",   actuator_config_path_,
+    n_pick.param("actuator_config_path",   actuator_config_path_,
                  std::string("/home/fshs/work/hirop/config/ClassicPPConfig.yaml"));
+
+    n_pick.param("move_group_name", arm, std::string("arm1"));
+
+    n_pick.param("open_gripper_server_name", openGripperServerName, std::string("openGripper"));
+    n_pick.param("close_gripper_server_name", closeGripperServerName, std::string("closeGripper"));
+
+    ROS_INFO_STREAM(arm << "<<----------------");
 
     ROS_INFO("generator_config_path_:%s", generator_config_path_.c_str());
     ROS_INFO("actuator_config_path_:%s", actuator_config_path_.c_str());
@@ -35,6 +49,21 @@ int PickPlaceService::start()
     pickplace_stop = n_pick.advertiseService("pickplacStop", &PickPlaceService::pickplaceStopCB, this);
     //默认优先启动
     initGenAndActParam("ClassicGenerator", generator_config_path_, "ClassicActuator", actuator_config_path_);
+
+    /****/
+    setPickDataServer = n_pick.advertiseService("loadPickData", &PickPlaceService::setPickDataCB, this);
+    setPlaceDataServer = n_pick.advertiseService("loadPlaceData", &PickPlaceService::setPlaceDataCB, this);
+    setVelocityAcceleratedServer = n_pick.advertiseService("setVelocityAccelerated", &PickPlaceService::setVelocityAcceleratedCB, this);
+
+
+    openGripperClient = n_pick.serviceClient<hirop_msgs::openGripper>(openGripperServerName);
+    closeGripperClient = n_pick.serviceClient<hirop_msgs::closeGripper>(closeGripperServerName);
+
+    pickTraSub = n_pick.subscribe<moveit_msgs::PickupActionResult>("/pickup/result", 10, &PickPlaceService::pickTraCB, this);
+    placeTraSub = n_pick.subscribe<moveit_msgs::PlaceActionResult>("/place/result", 10, &PickPlaceService::placeTraCB, this);
+    _moveGroup = new moveit::planning_interface::MoveGroupInterface(arm);
+    /****/
+
     return 0;
 }
 
@@ -50,6 +79,7 @@ bool PickPlaceService::initGenAndActParam(std::string generatorName, std::string
         isSucceeful = false;
         return isSucceeful;
     }
+    this->pickplacePtr->setMoveGroup(arm);
    isSucceeful = true;
    return isSucceeful;
 }
@@ -81,6 +111,7 @@ bool PickPlaceService::setGenActuatorCB(hirop_msgs::SetGenActuator::Request &req
 
 */
     res.isSucceeful = initGenAndActParam(generatorName, gen_configFile, actuatorName, act_configFile);
+    this->pickplacePtr->setMoveGroup(arm);
     return res.isSucceeful;
 }
 
@@ -177,12 +208,30 @@ bool PickPlaceService::pickCB(hirop_msgs::Pick::Request &req, hirop_msgs::Pick::
     pickPose.pose.orientation.z = req.pickPos.pose.orientation.z;
 
 
-    this->pickplacePtr->setPickPose(pickPose);
+    // this->pickplacePtr->setPickPose(pickPose);
+    this->pickplacePtr->setPickPos(pickPose);
     if(this->pickplacePtr->pick() != 0){
         res.isPickFinsh = false;
         return false;
     }
-    res.isPickFinsh = true;
+    else
+    {
+        int cnt = 0;
+        while (ros::ok() && cnt < 10)
+        {
+            if(receivePickTra)
+            {
+                std::vector<moveit_msgs::RobotTrajectory> tra;
+                tra = adjustmentVelocity(Picktraject);
+                receivePickTra = false;
+                pick(tra);
+                res.isPickFinsh = true;
+                return true;
+            }
+            ros::Duration(0.5).sleep();
+            cnt ++;
+        }    
+    }
     return true;
 }
 
@@ -200,12 +249,30 @@ bool PickPlaceService::placeCB(hirop_msgs::Place::Request &req, hirop_msgs::Plac
     placePose.pose.orientation.y = req.placePos.pose.orientation.y;
     placePose.pose.orientation.z = req.placePos.pose.orientation.z;
 
-    this->pickplacePtr->setPlacePose(placePose);
+    // this->pickplacePtr->setPlacePose(placePose);
+    this->pickplacePtr->setPlacePos(placePose);
     if(this->pickplacePtr->place() != 0){
         res.isPlaceFinsh = false;
         return false;
     }
-    res.isPlaceFinsh = true;
+    else
+    {
+        int cnt = 0;
+        while (ros::ok() && cnt < 10)
+        {
+            if(receivePlaceTra)
+            {
+                receivePlaceTra = false;
+                std::vector<moveit_msgs::RobotTrajectory> tra;
+                tra = adjustmentVelocity(Placetraject);
+                place(tra);
+                res.isPlaceFinsh = true;
+                return true;
+            }
+            ros::Duration(0.5).sleep();
+            cnt ++;
+        }    
+    }
     return true;
 }
 
@@ -218,3 +285,176 @@ bool PickPlaceService::pickplaceStopCB(hirop_msgs::PickPlaceStop::Request &req, 
     res.isSucceed = true;
     return true;
 }
+
+std::vector<moveit_msgs::RobotTrajectory> PickPlaceService::adjustmentVelocity(std::vector<moveit_msgs::RobotTrajectory> traject)
+{
+    robot_trajectory::RobotTrajectory rt(_moveGroup->getCurrentState()->getRobotModel(), _moveGroup->getName());
+    std::vector<moveit_msgs::RobotTrajectory> tras;
+    tras.resize(traject.size());
+    ROS_INFO_STREAM(traject.size());
+    for(int i=0; i<traject.size(); i++)
+    {
+        moveit_msgs::RobotTrajectory tra;
+        tra = adjustmentPoints(traject[i]);
+        rt.setRobotTrajectoryMsg(*(_moveGroup->getCurrentState()), tra);
+        trajectory_processing::IterativeParabolicTimeParameterization iptp;
+        ROS_INFO_STREAM("velocity: " <<velocity << " " << "accelerated: " << accelerated);
+        iptp.computeTimeStamps(rt, velocity, accelerated);
+        rt.getRobotTrajectoryMsg(tras[i]);
+    }
+    return tras;
+}
+
+moveit_msgs::RobotTrajectory PickPlaceService::adjustmentPoints(moveit_msgs::RobotTrajectory& traject)
+{
+    moveit_msgs::RobotTrajectory tra;
+    tra.joint_trajectory.joint_names = traject.joint_trajectory.joint_names;
+    tra.joint_trajectory.header.frame_id = traject.joint_trajectory.header.frame_id;
+    for(int i=0; i<traject.joint_trajectory.points.size(); i++)
+    {
+        if(i%4 != 0 && i != traject.joint_trajectory.points.size() - 1) 
+            continue;
+        tra.joint_trajectory.points.push_back(traject.joint_trajectory.points[i]);
+    }
+    return tra;
+}
+
+void PickPlaceService::setVelocityAccelerated(double v, double a)
+{
+    velocity = v;
+    accelerated = a;
+}
+
+bool PickPlaceService::execute(moveit_msgs::RobotTrajectory& tra)
+{
+    moveit::planning_interface::MoveGroupInterface::Plan multi_plan;
+    multi_plan.trajectory_ = tra;
+    bool flag = false;
+    int cnt = 0;
+    while (cnt < 3 && !flag)
+    {
+        flag = _moveGroup->execute(multi_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
+        cnt++;
+    }
+    return flag;
+}
+
+bool PickPlaceService::setVelocityAcceleratedCB(hirop_msgs::setVelocityAccelerated::Request& req, hirop_msgs::setVelocityAccelerated::Response& rep)
+{
+    setVelocityAccelerated(req.Velocity, req.Accelerated);
+    return true;
+}
+
+bool PickPlaceService::setPickDataCB(hirop_msgs::pickPlaceData::Request& req, hirop_msgs::pickPlaceData::Response& rep)
+{
+    std::string path = ros::package::getPath("pickplace_bridge");
+    std::string filePath = path + "/config/" + req.fileName + ".yaml";
+    ROS_INFO_STREAM(filePath);
+    this->pickplacePtr->getPickDataNode(filePath);
+    return true;
+}
+
+bool PickPlaceService::setPlaceDataCB(hirop_msgs::pickPlaceData::Request& req, hirop_msgs::pickPlaceData::Response& rep)
+{
+    std::string path = ros::package::getPath("pickplace_bridge");
+    std::string filePath = path + "/config/" + req.fileName + ".yaml";
+    ROS_INFO_STREAM(filePath);
+    this->pickplacePtr->getPlaceDataNode(filePath);
+    return true;
+}
+
+
+void PickPlaceService::pickTraCB(const moveit_msgs::PickupActionResultConstPtr& msg)
+{
+    std::vector<moveit_msgs::RobotTrajectory>().swap(Picktraject);
+    std::vector<std::string> jointNames = _moveGroup->getJointNames();
+    for(int i=0; i<msg->result.trajectory_stages.size(); i++)
+    {
+        if(jointNames[0] != msg->result.trajectory_stages[i].joint_trajectory.joint_names[0])
+            continue;
+        Picktraject.push_back(msg->result.trajectory_stages[i]);
+    }
+    receivePickTra = true;
+}
+
+void PickPlaceService::placeTraCB(const moveit_msgs::PlaceActionResultConstPtr& msg)
+{
+    std::vector<moveit_msgs::RobotTrajectory>().swap(Placetraject);
+    std::vector<std::string> jointNames = _moveGroup->getJointNames();
+    for(int i=0; i<msg->result.trajectory_stages.size(); i++)
+    {
+        if(jointNames[0] != msg->result.trajectory_stages[i].joint_trajectory.joint_names[0])
+            continue;
+        Placetraject.push_back(msg->result.trajectory_stages[i]);
+    }
+    receivePlaceTra = true;
+}
+
+
+bool PickPlaceService::openGripper()
+{
+    hirop_msgs::openGripper srv;
+    if(openGripperClient.call(srv))
+    {
+        return srv.response.isOpen;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool PickPlaceService::closeGripper()
+{
+    hirop_msgs::closeGripper srv;
+    if(closeGripperClient.call(srv))
+    {
+        return srv.response.isClose;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
+int PickPlaceService::pick(std::vector<moveit_msgs::RobotTrajectory> tra)
+{
+    if(execute(tra[0]))
+    {
+        openGripper();
+        if(execute(tra[1]))
+        {
+            closeGripper();
+            _moveGroup->attachObject("object");
+            if(execute(tra[2]))
+            {
+                ROS_INFO("pick over");
+                return 0;
+            }
+        }
+    }
+    ROS_INFO("pick failed");
+    return -1;
+}
+
+int PickPlaceService::place(std::vector<moveit_msgs::RobotTrajectory> tra)
+{
+    if(execute(tra[0]))
+    {
+        if(execute(tra[1]))
+        {
+            openGripper();
+            if(execute(tra[2]))
+            {
+                // _moveGroup->detachObject("object");
+                this->pickplacePtr->removeObject();
+                ROS_INFO("place over");
+                return 0;
+            }
+        }
+    }
+    ROS_INFO("place failed");
+    return -1;
+}
+

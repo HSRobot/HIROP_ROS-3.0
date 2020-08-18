@@ -5,6 +5,7 @@
   <arg name="actuator_config_path"  default="$(find pickplace_bridge)/config/serialPPConfig.yaml"/>
 
   <node pkg="pickplace_bridge" type="pickplace_bridge" name="pickplace_bridge" output="screen">
+      <param name="move_group" type="string" value="arm1" />
      <param name="generator_config_path" type="str" value="$(arg generator_config_path)"/>
      <param name="actuator_config_path" type="str" value="$(arg actuator_config_path)"/>
   </node>

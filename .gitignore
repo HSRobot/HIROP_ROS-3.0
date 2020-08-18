@@ -1,1 +1,7 @@
 *.user
+build*
+*zip
+*tar
+*gz
+*vscode
+
