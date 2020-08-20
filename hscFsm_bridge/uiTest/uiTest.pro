@@ -21,15 +21,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # In order to do so, uncomment the following line.
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
-QMAKE_CXXFLAGS += -std=c++11
-INCLUDEPATH += /opt/ros/kinetic/include
-DEPENDPATH += /opt/ros/kinetic/include
-LIBS += -L/opt/ros/kinetic/lib -lroscpp -lroslib -lrosconsole -lroscpp_serialization -lrostime
-LIBS += /opt/ros/kinetic/lib/libxmlrpcpp.so \
-        /opt/ros/kinetic/lib/libcpp_common.so \
-        /opt/ros/kinetic/lib/librosconsole_log4cxx.so
-        /opt/ros/kinetic/lib/librosconsole_backend_interface.so\
-
+include(ros.pro)
 
 SOURCES += \
         main.cpp \

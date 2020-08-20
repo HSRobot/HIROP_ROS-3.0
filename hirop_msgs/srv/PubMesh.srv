@@ -1,0 +1,7 @@
+std_msgs/Header header
+string file_name
+string object_id
+std_msgs/ColorRGBA rgba
+hirop_msgs/Pose pose
+---
+bool result

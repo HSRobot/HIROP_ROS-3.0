@@ -6,18 +6,23 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   trajectory_msgs
+shape_msgs
 )
 
 add_message_files(
-  FILES
-  ObjectArray.msg
-  ObjectInfo.msg
-  GeneralPos.msg
-joints_angle.msg  
-robotMotionGroup.msg  
-robotMotionTraject.msg
-loadJointData.msg
-shakeHandStatus.msg
+	FILES
+	ObjectArray.msg
+	ObjectInfo.msg
+	GeneralPos.msg
+	joints_angle.msg  
+	robotMotionGroup.msg  
+	robotMotionTraject.msg
+	loadJointData.msg
+	shakeHandStatus.msg
+	taskCmdRet.msg
+	FixedAngle.msg
+	Pose.msg
+
 )
 
 add_service_files(
@@ -84,6 +89,18 @@ loadJointsData.srv
 saveDataEnd.srv   
 savePoseData.srv
 setRobotType.srv
+taskInputCmd.srv
+
+ClearScene.srv
+LookPointCloud.srv
+PubMesh.srv
+PubObject.srv
+removeObject.srv
+setVelocityAccelerated.srv
+updateParam.srv
+UpdatePCL.srv
+updatePCParm.srv
+
 )
 
 generate_messages(
@@ -91,6 +108,7 @@ generate_messages(
   std_msgs
   geometry_msgs
   trajectory_msgs
+	shape_msgs
 )
 
 catkin_package(

@@ -42,6 +42,7 @@ include_directories(
 add_executable(pickplace_bridge
   src/main.cpp
   src/ros_pickplace.cpp
+  include/ros_pickplace.h
 )
 
 add_dependencies(pickplace_bridge ${hirop_msgs_EXPORTED_TARGETS}　${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

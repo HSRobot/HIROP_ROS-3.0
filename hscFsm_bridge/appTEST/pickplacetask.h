@@ -8,11 +8,11 @@ namespace HsFsm {
 class PickPlaceTask :public HsTaskFramework
 {
 public:
-    PickPlaceTask(const std::string& taskName);
+    PickPlaceTask(const string &taskName);
 
     virtual void init();
 
-    virtual bool setCommand(CmdInputData behevior);
+    virtual bool setCommand(const CmdInputData &cmd);
 
     virtual void quit();
 
@@ -20,12 +20,12 @@ public:
 
     virtual bool registerTaskList();
 
-    virtual std::string getTaskName();
+//    virtual std::string getTaskName();
 private:
 
     void transInit2Run(const std::vector<std::string> &args);
 private:
-    State state;
+    std::map<std::string, int> taskMap;
 };
 
 

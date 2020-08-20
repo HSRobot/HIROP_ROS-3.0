@@ -67,6 +67,7 @@ class PerceptionSever():
                 self.regionFilter.params.maxY = 1
                 self.regionFilter.params.minZ = 0
                 self.regionFilter.params.maxZ = 2.1
+
 		print("in look service call back")
 		self.sched = ecto.Scheduler(self.lookPlasm)
 		lock.acquire()

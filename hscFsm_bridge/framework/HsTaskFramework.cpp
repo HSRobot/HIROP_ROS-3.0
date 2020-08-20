@@ -1,17 +1,12 @@
 #include "HsTaskFramework.h"
 using namespace HsFsm;
 
-HsTaskFramework::HsTaskFramework()
+HsTaskFramework::HsTaskFramework():typeCode(0),taskRunStatus(false)
 {
     fsmStack = std::make_shared<fsm::stack>();
 }
 
 void HsTaskFramework::waitRecall()
-{
-   waitRecallProxy();
-}
-
-void HsTaskFramework::waitRecallProxy()
 {
     if(notitySem ==nullptr)
         notitySem = std::make_shared<semaphore>(taskName);
@@ -19,22 +14,50 @@ void HsTaskFramework::waitRecallProxy()
     notitySem->wait();
 }
 
-bool HsTaskFramework::setCommandProxy(HsFsm::behevior behevior)
+string HsTaskFramework::getTaskName()
 {
-    fsmStack->command(behevior);
+    return taskName;
+}
+
+
+bool HsTaskFramework::setCommandProxy(const HsFsm::behevior &behevior)
+{
+    if(!fsmStack->command(behevior))
+    {
+        taskRunStatus = false;
+        typeCode = -1;
+        notityRecall();
+        return false;
+    }
+
+    return true;
 
 }
+//bool HsTaskFramework::setCommand(const CmdInputData &cmd)
+//{
+//    if(!fsmStack->command(cmd.baheviror))
+//    {
+//        taskRunStatus = false;
+//        typeCode = -1;
+//        notityRecall();
+//        return false;
+//    }
+
+//    return true;
+//}
+
 
 void HsTaskFramework::notityRecall()
 {
+    state = getTaskState();
     notitySem->signal();
 }
 
 
-void HsFsm::HsTaskFramework::registerTask(HsFsm::state current, HsFsm::behevior behevior, HsFsm::call call)
+void HsFsm::HsTaskFramework::registerTask( HsFsm::behevior behevior, HsFsm::call call)
 {
 
-    fsmStack->on(current,behevior) = call;
+    fsmStack->on(taskName, string(behevior)) = call;
 }
 
 State HsTaskFramework::getTaskState()
@@ -43,10 +66,22 @@ State HsTaskFramework::getTaskState()
      State current;
      current.meassage = ret.args;
      current.stateName = ret.name;
+     current.Type = typeCode;
+     current.status = taskRunStatus;
      return current;
 }
 
 void HsTaskFramework::setTaskState(HsFsm::state state)
 {
     fsmStack->set(state);
+}
+
+void HsTaskFramework::setInitState()
+{
+    fsmStack->set(taskName);
+}
+
+void HsTaskFramework::setExitingAction()
+{
+    fsmStack->command("quit");
 }

@@ -4,7 +4,7 @@
 // [ref]  http://en.wikipedia.org/wiki/Finite-state_machine
 // [todo] GOAP? behavior trees?
 // [todo] counters
-// [note] common actions are 'init', 'quit', 'push', 'back' (integers)
+// [note] common actions are 'initing', 'quit', 'push', 'back' (integers)
 //        - init and quit are called everytime a state is created or destroyed.
 //        - push and back are called everytime a state is paused or resumed. Ie, when pushing and popping the stack tree.
 // [note] on child states (tree of fsm's):
@@ -13,7 +13,7 @@
 
 #pragma once
 
-#define FSM_VERSION "1.0.0" /* (2015/11/29) Code revisited to use fourcc integers (much faster); clean ups suggested by Chang Qian
+#define FSM_VERSION "2.0.0" /* (2020/08/17) Code revisited to use fourcc integers (much faster); clean ups suggested by Chang Qian
 #define FSM_VERSION "0.0.0" // (2014/02/15) Initial version */
 
 #include <algorithm>
@@ -26,6 +26,10 @@
 #include <vector>
 #include <functional>
 
+
+// 注意 一个状态通用的行为有initing quiting
+// pushing backing
+using namespace std;
 namespace fsm
 {
     template<typename T>
@@ -43,10 +47,10 @@ namespace fsm
     typedef std::function< void( const fsm::args &args ) > call;
 
     struct state {
-        int name;
+        std::string name;
         fsm::args args;
 
-        state( const int &name = 'null' ) : name(name)
+        state( const std::string &name = "null" ) : name(name)
         {}
 
         state operator()() const {
@@ -67,7 +71,7 @@ namespace fsm
             return self;
         }
 
-        operator int () const {
+        operator std::string () const {
             return name;
         }
 
@@ -78,25 +82,25 @@ namespace fsm
             return name == other.name;
         }
 
-        template<typename ostream>
-        inline friend ostream &operator<<( ostream &out, const state &t ) {
-            if( t.name >= 256 ) {
-                out << char((t.name >> 24) & 0xff);
-                out << char((t.name >> 16) & 0xff);
-                out << char((t.name >>  8) & 0xff);
-                out << char((t.name >>  0) & 0xff);
-            } else {
-                out << t.name;
-            }
-            out << "(";
-            std::string sep;
-            for(auto &arg : t.args ) {
-                out << sep << arg;
-                sep = ',';
-            }
-            out << ")";
-            return out;
-        }
+//        template<typename ostream>
+//        inline friend ostream &operator<<( ostream &out, const state &t ) {
+//            if( t.name >= 256 ) {
+//                out << char((t.name >> 24) & 0xff);
+//                out << char((t.name >> 16) & 0xff);
+//                out << char((t.name >>  8) & 0xff);
+//                out << char((t.name >>  0) & 0xff);
+//            } else {
+//                out << t.name;
+//            }
+//            out << "(";
+//            std::string sep;
+//            for(auto &arg : t.args ) {
+//                out << sep << arg;
+//                sep = ',';
+//            }
+//            out << ")";
+//            return out;
+//        }
     };
 
     typedef state trigger;
@@ -114,12 +118,12 @@ namespace fsm
     class stack {
     public:
 
-        stack( const fsm::state &start = 'null' ) : deque(1) {
+        stack( const fsm::state &start = std::string("null") ) : deque(1) {
             deque[0] = start;
-            call( deque.back(), 'init' );
+            call( deque.back(), string("initing"));
         }
 
-        stack( int start ) : stack( fsm::state(start) ) 
+        stack( string start ) : stack( fsm::state(start) )
         {}
 
         ~stack() {
@@ -135,19 +139,19 @@ namespace fsm
                 return;
             }
             // queue
-            call( deque.back(), 'push' );
+            call( deque.back(), string("pushing") );
             deque.push_back( state );
-            call( deque.back(), 'init' );
+            call( deque.back(), string("initing") );
         }
 
         // terminate current state and return to parent (if any)
         void pop() {
             if( deque.size() ) {
-                call( deque.back(), 'quit' );
+                call( deque.back(), string("quiting") );
                 deque.pop_back();
             }
             if( deque.size() ) {
-                call( deque.back(), 'back' );
+                call( deque.back(), string("backing") );
             }
         }
 
@@ -157,6 +161,16 @@ namespace fsm
                 replace( deque.back(), state );
             } else {
                 push(state);
+            }
+        }
+
+        void set( const char* state ) {
+            fsm::state stateStr(state);
+            // 状态转换的时候 如果存在转换的行为 那么会调用转换的行为 否则直接zhuanhaunu
+            if( deque.size() ) {
+                replace( deque.back(), stateStr );
+            } else {
+                push(stateStr);
             }
         }
 
@@ -178,7 +192,9 @@ namespace fsm
         }
         std::string get_trigger() const {
             std::stringstream ss;
-            return ss << current_trigger, ss.str();
+//            return ss << current_trigger, ss.str();
+            return  ss.str();
+
         }
 
         bool is_state( const fsm::state &state ) const {
@@ -209,7 +225,14 @@ private:
             }
             return false;
         }
+
+        bool call( const char *from, const char * to ) const {
+            call(string(from),string(to));
+        }
 public:
+        bool command(const char* trigger){
+            return command(string(trigger));
+        }
         // user commands
         bool command( const fsm::state &trigger ) {
             size_t size = this->size();
@@ -225,7 +248,7 @@ public:
                     continue;
                 }
                 for( auto it = aborted.begin(), end = aborted.end(); it != end; ++it ) {
-                    call(**it, 'quit');
+                    call(**it, string("quit"));
                     deque.erase(--(it->base()));
                 }
                 current_trigger = trigger;
@@ -282,13 +305,13 @@ public:
     protected:
 
         void replace( fsm::state &current, const fsm::state &next ) {
-            call( current, static_cast<int>('quit') );
+            call( current, string("quiting")); //当前状态的退出
             current = next;
-            call( current, 'init' );
+            call( current, string("initing") );//下一个状态的初始化
         }
 
-        typedef std::pair<int, int> bistate;
-        std::map< bistate, fsm::call > callbacks;
+        typedef std::pair<string, string> bistate;
+        std::map< bistate, fsm::call > callbacks; //关键的状态键值表
 
         mutable std::deque< fsm::transition > log;
         std::deque< fsm::state > deque;

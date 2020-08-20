@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <ros/ros.h>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -12,6 +11,23 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::setRosHandler(ros::NodeHandle &nh)
+{
+    this->nh = nh;
+    initRosParam();
+}
+
+void MainWindow::initRosParam()
+{
+    nh.serviceClient<hirop_msgs::taskInputCmd>("taskInputCmd");
+    nh.subscribe("taskRet", 1, &MainWindow::taskRetCb,this);
+}
+
+void MainWindow::taskRetCb(const hirop_msgs::taskCmdRet &ret)
+{
+
 }
 
 void MainWindow::on_pushButton_clicked()
