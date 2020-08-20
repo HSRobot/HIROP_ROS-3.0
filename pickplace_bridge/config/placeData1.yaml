@@ -1,0 +1,24 @@
+placeLocPos:
+  place_pose:
+    header:
+      frame_id: world
+  pre_place_approach:
+    direction:
+      header:
+        frame_id: world
+      vector:
+        x: 0
+        y: 1
+        z: 0
+    min_distance: 0.1
+    desired_distance: 0.15
+  post_place_retreat:
+    direction:
+      header:
+        frame_id: world
+      vector:
+        x: 0
+        y: -1
+        z: 0
+    min_distance: 0.1
+    desired_distance: 0.15

@@ -1,0 +1,7 @@
+std_msgs/Header header
+string[] object_id
+shape_msgs/SolidPrimitive[] primitives
+hirop_msgs/Pose[] pose
+std_msgs/ColorRGBA[] rgba
+---
+bool result

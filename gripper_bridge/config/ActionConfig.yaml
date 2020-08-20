@@ -1,0 +1,6 @@
+parameters: 
+  InspireGripper: 
+    cmd: rosrun gripper_bridge inspire_action.py
+    
+  AirpowereGripper:
+    cmd: rosrun gripper_bridge airpowere_action.py
