@@ -1,0 +1,24 @@
+grasp_pose:
+  grasp_pose:
+    header:
+      frame_id: world
+  pre_grasp_approach:
+    direction:
+      header:
+        frame_id: world
+      vector:
+        x: 1
+        y: 0
+        z: 0
+    min_distance: 0.1
+    desired_distance: 0.15
+  post_grasp_retreat:
+    direction:
+      header:
+        frame_id: world
+      vector:
+        x: -1
+        y: 0
+        z: 0
+    min_distance: 0.1
+    desired_distance: 0.15

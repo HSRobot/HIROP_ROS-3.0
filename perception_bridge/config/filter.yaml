@@ -1,0 +1,20 @@
+voxel:
+  leafX: 0.01f
+  leafY: 0.01f
+  leafZ: 0.01f
+
+region:
+  maxZ: 0.5
+  minZ: 0
+  maxY: 0.5
+  minY: 0
+  maxX: 0.5
+  minX: 0
+
+object:
+  maxZ: 0
+  minZ: 0
+  maxY: 0
+  minY: 0
+  maxX: 0
+  minX: 0

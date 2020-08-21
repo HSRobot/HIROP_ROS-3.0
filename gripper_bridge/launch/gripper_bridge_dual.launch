@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+
+  <group ns= "UR51">
+    <arg name="gripper_config_path"  default="$(find gripper_bridge)/config/GripperConfig0.yaml"/>
+    <node pkg="gripper_bridge" type="gripper_bridge" name="gripper_bridge" output="screen">
+     <param name="gripper_config_path" type="str" value="$(arg gripper_config_path)"/>
+    </node>         
+  </group>
+		
+  <group ns= "UR52">
+     <arg name="gripper_config_path"  default="$(find gripper_bridge)/config/GripperConfig1.yaml"/>
+     <node pkg="gripper_bridge" type="gripper_bridge" name="gripper_bridge" output="screen">
+       <param name="gripper_config_path" type="str" value="$(arg gripper_config_path)"/>
+     </node>
+  </group>
+
+</launch>
+
+

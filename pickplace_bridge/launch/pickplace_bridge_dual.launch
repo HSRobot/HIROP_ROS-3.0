@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="generator_config_path0" default="$(find pickplace_bridge)/config/serialGenConfig.yaml"/>
+  <arg name="actuator_config_path0"  default="$(find pickplace_bridge)/config/serialPPConfig.yaml"/>
+  <arg name="move_group_name0"  default="arm0"/>
+
+  <node pkg="pickplace_bridge" type="pickplace_bridge" name="pickplace_bridge0" output="screen">
+     <param name="generator_config_path" type="str" value="$(arg generator_config_path0)"/>
+     <param name="actuator_config_path" type="str" value="$(arg actuator_config_path0)"/>
+     <param name="move_group_name" type="str" value="$(arg move_group_name0)"/>
+     <remap from="openGripper" to="/UR51/openGripper" />
+     <remap from="closeGripper" to="/UR51/closeGripper" />
+     <!-- <remap from="/pickup/result" to="" />
+     <remap from="/place/result" to="" /> -->
+  </node>
+
+  <!-- <node name="gripper_action" pkg="gripper_bridge" type="serial_action.py"  output="screen"/>	 -->
+
+    <arg name="generator_config_path1" default="$(find pickplace_bridge)/config/serialGenConfig.yaml"/>
+  <arg name="actuator_config_path1"  default="$(find pickplace_bridge)/config/serialPPConfig.yaml"/>
+  <arg name="move_group_name1"  default="arm1"/>
+
+  <node pkg="pickplace_bridge" type="pickplace_bridge" name="pickplace_bridge1" output="screen">
+     <param name="generator_config_path" type="str" value="$(arg generator_config_path1)"/>
+     <param name="actuator_config_path" type="str" value="$(arg actuator_config_path1)"/>
+     <param name="move_group_name" type="str" value="$(arg move_group_name1)"/>
+     <remap from="openGripper" to="/UR52/openGripper" />
+     <remap from="closeGripper" to="/UR52/closeGripper" />
+     <!-- <remap from="/pickup/result" to="" />
+     <remap from="/place/result" to="" /> -->
+  </node>
+
+  <!-- <node name="gripper_action" pkg="gripper_bridge" type="serial_action.py"  output="screen"/>	 -->
+
+</launch>
