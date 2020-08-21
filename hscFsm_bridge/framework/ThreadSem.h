@@ -16,7 +16,7 @@ public:
         --count;
         if ( count < 0)//资源不足挂起线程
         {
-            std::cout << name <<" sem waiting .."<<std::endl;
+//            std::cout << name <<" sem waiting .."<<std::endl;
             cv.wait(lck);
         }
     }
@@ -27,7 +27,7 @@ public:
         ++count;
         if (count <= 0)//有线程挂起，唤醒一个
         {
-            std::cout << name <<" sem signal .."<<std::endl;
+//            std::cout<< name <<" sem signal .."<<std::endl;
             cv.notify_one();
         }
     }

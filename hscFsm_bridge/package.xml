@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>hscFsm_bridge</name>
+
+  <name>hscfsm_bridge</name>
   <version>0.0.0</version>
-  <description>The hsc3api_bridge package</description>
+  <description>The hscfsm_bridge hscfsm_bridge</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

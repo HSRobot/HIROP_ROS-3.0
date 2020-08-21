@@ -1,6 +1,6 @@
 
 QMAKE_CXXFLAGS += -std=c++11
-INCLUDEPATH += /opt/ros/kinetic/include /home/de/catkin_ws/devel/include
+INCLUDEPATH += /opt/ros/kinetic/include /home/fshs/catkin_ws/devel/include
 DEPENDPATH += /opt/ros/kinetic/include
 LIBS += -L/opt/ros/kinetic/lib -lroscpp -lroslib -lrosconsole -lroscpp_serialization -lrostime
 LIBS += /opt/ros/kinetic/lib/libxmlrpcpp.so \

@@ -53,11 +53,22 @@ namespace fsm
         state( const std::string &name = "null" ) : name(name)
         {}
 
+        state(const char* name){
+            this->name = string(name);
+        }
+
         state operator()() const {
             state self = *this;
             self.args = {};
             return self;
         }
+
+        state operator()( const fsm::args &t0 ) const {
+            state self = *this;
+            self.args = t0;
+            return self;
+        }
+
         template<typename T0>
         state operator()( const T0 &t0 ) const {
             state self = *this;
@@ -82,25 +93,25 @@ namespace fsm
             return name == other.name;
         }
 
-//        template<typename ostream>
-//        inline friend ostream &operator<<( ostream &out, const state &t ) {
+        template<typename ostream>
+        inline friend ostream &operator<<( ostream &out, const state &t ) {
 //            if( t.name >= 256 ) {
 //                out << char((t.name >> 24) & 0xff);
 //                out << char((t.name >> 16) & 0xff);
 //                out << char((t.name >>  8) & 0xff);
 //                out << char((t.name >>  0) & 0xff);
 //            } else {
-//                out << t.name;
-//            }
-//            out << "(";
-//            std::string sep;
-//            for(auto &arg : t.args ) {
-//                out << sep << arg;
-//                sep = ',';
-//            }
-//            out << ")";
-//            return out;
-//        }
+                out << t.name;
+
+            out << "(";
+            std::string sep;
+            for(auto &arg : t.args ) {
+                out << sep << arg;
+                sep = ',';
+            }
+            out << ")";
+            return out;
+        }
     };
 
     typedef state trigger;
@@ -121,6 +132,11 @@ namespace fsm
         stack( const fsm::state &start = std::string("null") ) : deque(1) {
             deque[0] = start;
             call( deque.back(), string("initing"));
+        }
+
+        stack( const stack & handler) {
+            this->callbacks = handler.callbacks;
+            this->deque = handler.deque;
         }
 
         stack( string start ) : stack( fsm::state(start) )
@@ -165,6 +181,7 @@ namespace fsm
         }
 
         void set( const char* state ) {
+            std::cout << "current change to : "<<state<<std::endl;
             fsm::state stateStr(state);
             // 状态转换的时候 如果存在转换的行为 那么会调用转换的行为 否则直接zhuanhaunu
             if( deque.size() ) {
@@ -230,9 +247,27 @@ private:
             call(string(from),string(to));
         }
 public:
+        bool findFuntionalIsVaild(const char* trigger){
+            auto it = deque.rbegin();
+            fsm::state &self = *it;
+
+            std::map< bistate, fsm::call >::const_iterator found = callbacks.find(bistate(self, trigger));
+            if( found == callbacks.end() ) {
+                return false;
+            }
+
+            return true;
+        }
+
+        bool commandThread(const char* trigger, const fsm::args& args){
+            fsm::state state(trigger);
+            return command(state(args));
+        }
+
         bool command(const char* trigger){
             return command(string(trigger));
         }
+
         // user commands
         bool command( const fsm::state &trigger ) {
             size_t size = this->size();
@@ -282,6 +317,15 @@ public:
                 out << "\t" << log[i] << std::endl;
             }
             out << "}" << std::endl;
+
+            out << "----------------------------"<<std::endl;
+
+            for(auto it = callbacks.begin(); it != callbacks.end() ; it ++){
+                std::pair<string, string> pairGroup = it->first;
+                std::cout << "state: "<<pairGroup.first<<" "<< " behavior: "<<pairGroup.second<<std::endl;
+            }
+            out << "----------------------------"<<std::endl;
+
             return out;
         }
 
@@ -300,6 +344,11 @@ public:
         template<typename ostream>
         inline friend ostream &operator<<( ostream &out, const stack &t ) {
             return t.debug( out ), out;
+        }
+
+        template<typename ostream>
+        inline friend ostream &operator<<( ostream &out,  stack *t ) {
+            return t->debug( out ), out;
         }
 
     protected:

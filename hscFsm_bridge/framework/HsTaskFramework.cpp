@@ -1,15 +1,56 @@
 #include "HsTaskFramework.h"
 using namespace HsFsm;
-
-HsTaskFramework::HsTaskFramework():typeCode(0),taskRunStatus(false)
+#include <functional>
+HsTaskFramework::HsTaskFramework()
 {
     fsmStack = std::make_shared<fsm::stack>();
+    notitySem = std::make_shared<semaphore>(taskName);
+}
+
+HsTaskFramework::HsTaskFramework(std::shared_ptr<HsTaskFramework> &fsm):typeCode(0),taskRunStatus(false)
+{
+    framework = fsm;
+    fsmStack = fsm->fsmStack;
+    notitySem = fsm->notitySem;
+    threadpool = std::make_shared<ThreadPool>(4);
+}
+
+void HsTaskFramework::init()
+{
+
+    framework->init();
+    setInitState();
+
+}
+
+bool HsTaskFramework::setCommand(const CmdInputData &cmd)
+{
+    //
+//    framework->setCommand(cmd);
+    setCommandProxy(cmd);
+}
+
+void HsTaskFramework::quit()
+{
+    framework->quit();
+    setExitingAction();
+
+}
+
+State HsTaskFramework::getState()
+{
+    return getTaskState();
+}
+
+bool HsTaskFramework::registerTaskList()
+{
+    return framework->registerTaskList();
 }
 
 void HsTaskFramework::waitRecall()
 {
-    if(notitySem ==nullptr)
-        notitySem = std::make_shared<semaphore>(taskName);
+//    if(notitySem ==nullptr)
+//        notitySem = std::make_shared<semaphore>(taskName);
 
     notitySem->wait();
 }
@@ -19,10 +60,21 @@ string HsTaskFramework::getTaskName()
     return taskName;
 }
 
-
-bool HsTaskFramework::setCommandProxy(const HsFsm::behevior &behevior)
+void HsTaskFramework::debugTaskList()
 {
-    if(!fsmStack->command(behevior))
+//    ostream os;
+//    os << fsmStack->debug(os);
+    std::cout <<fsmStack.get();
+}
+
+/**
+ * @brief HsTaskFramework::setCommandProxy 指令运行代理函数
+ * @param behevior
+ * @return
+ */
+bool HsTaskFramework::setCommandProxy(const CmdInputData &cmd)
+{
+    if(!fsmStack->findFuntionalIsVaild(cmd.baheviror.c_str()))
     {
         taskRunStatus = false;
         typeCode = -1;
@@ -30,34 +82,24 @@ bool HsTaskFramework::setCommandProxy(const HsFsm::behevior &behevior)
         return false;
     }
 
+    std::cout << cmd;
+    threadpool->enqueue(&fsm::stack::commandThread, fsmStack.get(), cmd.baheviror.c_str(),cmd.param);
     return true;
 
 }
-//bool HsTaskFramework::setCommand(const CmdInputData &cmd)
-//{
-//    if(!fsmStack->command(cmd.baheviror))
-//    {
-//        taskRunStatus = false;
-//        typeCode = -1;
-//        notityRecall();
-//        return false;
-//    }
-
-//    return true;
-//}
 
 
 void HsTaskFramework::notityRecall()
 {
-    state = getTaskState();
+    currentState = getTaskState();
     notitySem->signal();
 }
 
 
-void HsFsm::HsTaskFramework::registerTask( HsFsm::behevior behevior, HsFsm::call call)
+void HsFsm::HsTaskFramework::registerTask( HsFsm::state state, HsFsm::action behevior, HsFsm::call call)
 {
 
-    fsmStack->on(taskName, string(behevior)) = call;
+    fsmStack->on(string(state), string(behevior)) = call;
 }
 
 State HsTaskFramework::getTaskState()
@@ -68,6 +110,7 @@ State HsTaskFramework::getTaskState()
      current.stateName = ret.name;
      current.Type = typeCode;
      current.status = taskRunStatus;
+     current.meassage = recallMessage;
      return current;
 }
 
@@ -78,10 +121,21 @@ void HsTaskFramework::setTaskState(HsFsm::state state)
 
 void HsTaskFramework::setInitState()
 {
-    fsmStack->set(taskName);
+    threadpool->Start();
+    fsmStack->set("init");
 }
 
 void HsTaskFramework::setExitingAction()
 {
-    fsmStack->command("quit");
+    fsmStack->set("quit");
+
+    threadpool->Stop();
+}
+
+void HsTaskFramework::setRecallState(State state)
+{
+    typeCode = state.Type;
+    taskRunStatus = state.status;
+    recallMessage = state.meassage;
+    this->currentState = state;
 }

@@ -6,6 +6,7 @@
 #include <atomic>
 #include <queue>
 #include <std_srvs/Trigger.h>
+#include <std_srvs/Empty.h>
 using namespace std;
 using namespace HsFsm;
 
@@ -55,7 +56,7 @@ private:
      * @param res
      * @return
      */
-    bool getStatusCmdCB(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
+    bool getStatusCmdCB(std_srvs::EmptyRequest & req  , std_srvs::EmptyResponse &res);
 
 
     /**
@@ -76,6 +77,15 @@ private:
     bool stopTaskCmdCB(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
 
     /**
+     * @brief getTaskListCb
+     * @param req
+     * @param res
+     * @return
+     */
+    bool getTaskListCb(std_srvs::EmptyRequest & req  ,  std_srvs::EmptyResponse & res);
+private:
+
+    /**
      * @brief cmdCbThreadLoop 任务执行 阻塞轮询
      */
     void cmdCbThreadLoop();
@@ -83,7 +93,7 @@ private:
     ros::NodeHandle nh;
 
     ros::ServiceServer cmdServer,getStatusServer; //cmd server call
-    ros::ServiceServer startTaskServer,stopTaskServer; //cmd server call
+    ros::ServiceServer startTaskServer,stopTaskServer , getTaskListServer; //cmd server call
 
     ros::Publisher retPub; // cmd pub
 

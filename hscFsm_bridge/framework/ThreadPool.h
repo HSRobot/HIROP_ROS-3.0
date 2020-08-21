@@ -1,6 +1,4 @@
-#ifndef THREAD_POOL_H
-#define THREAD_POOL_H
-
+#pragma once
 #include <vector>
 #include <queue>
 #include <memory>
@@ -60,14 +58,14 @@ inline ThreadPool::ThreadPool(size_t threads)
 }
 
 
-void ThreadPool::Start()
+inline void ThreadPool::Start()
 {
     if(startFlag)
         return ;
     else
         startFlag = true;
 
-    std::cout << " ThreadPool start ... "<<std::endl;
+    std::cout << "ThreadPool start ... "<<std::endl;
     for(size_t i = 0;i<threads;++i)
         workers.emplace_back(
             [this]
@@ -97,7 +95,7 @@ void ThreadPool::Start()
 
 // add new work item to the pool
 template<class F, class... Args>
-auto ThreadPool::enqueue(F&& f, Args&&... args) 
+inline auto ThreadPool::enqueue(F&& f, Args&&... args)
     -> std::future<typename std::result_of<F(Args...)>::type>
 {
 
@@ -124,7 +122,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
     return res;
 }
 
-void ThreadPool::Stop()
+inline void ThreadPool::Stop()
 {
     if(!startFlag)
        return ;
@@ -138,7 +136,7 @@ void ThreadPool::Stop()
         worker.join();
 
     startFlag = false;
-    std::cout << " ThreadPool stop ... "<<std::endl;
+    std::cout << "ThreadPool stop ... "<<std::endl;
 
 }
 
@@ -148,5 +146,3 @@ inline ThreadPool::~ThreadPool()
     if(startFlag)
         Stop();
 }
-
-#endif

@@ -27,7 +27,11 @@ private:
     void taskRetCb(const hirop_msgs::taskCmdRet & ret);
 private slots:
     void on_pushButton_clicked();
+    void on_pushButton_2_clicked();
 
+private:
+    ros::ServiceClient taskInputCmd;
+    ros::Subscriber taskRet;
 private:
     Ui::MainWindow *ui;
     ros::NodeHandle nh;

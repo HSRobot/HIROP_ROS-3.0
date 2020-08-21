@@ -5,9 +5,11 @@
 #include <functional>
 #include <fsmframeworkinterface.h>
 #include <ThreadSem.h>
+#include <ThreadPool.h>
 namespace HsFsm {
 
 typedef const char* state;
+typedef const char* action;
 typedef string behevior;
 typedef std::function< void( const std::vector<std::string> &args ) > call;
 typedef const std::vector<string> callParm;
@@ -20,36 +22,38 @@ class HsTaskFramework: public FsmFramworkInterface
 public:
     HsTaskFramework();
 
+    HsTaskFramework(std::shared_ptr<HsTaskFramework> &fsm);
+
     /**
      * @brief init 子任务的初始化
      */
-    virtual void init()=0;
+    virtual void init();
 
     /**
      * @brief setCommand 子任务 的相关行为
      * @param behevior
      * @return
      */
-    virtual bool setCommand(const CmdInputData &cmd)=0;
+    bool setCommand(const CmdInputData &cmd);
 
 
     /**
      * @brief quit  子任务的退出
      */
-    virtual void quit()=0;
+    virtual void quit();
 
     /**
      * @brief getState 获取子任务的当前状态
      * @param state
      * @return
      */
-    virtual State getState()=0;
+     State getState();
 
     /**
      * @brief registerTaskList 子任务的绑定事件的注册
      * @return
      */
-    virtual bool registerTaskList()=0;
+    virtual bool registerTaskList();
 
 
 
@@ -65,12 +69,18 @@ protected:
      */
     std::string getTaskName() override;
 
+
+    /**
+     * @brief debugTaskList
+     */
+    void debugTaskList() override;
+protected:
     /**
      * @brief setCommandProxy
      * @param behevior
      * @return
      */
-    bool setCommandProxy(const behevior &behevior);
+    bool setCommandProxy(const CmdInputData &cmd);
 
 
     /**
@@ -79,7 +89,7 @@ protected:
     void notityRecall();
 
 
-    void registerTask(behevior behevior, call call);
+    void registerTask( HsFsm::state state, HsFsm::action behevior, HsFsm::call call);
 
 
     /**
@@ -93,7 +103,7 @@ protected:
      * @brief setTaskState
      * @param state
      */
-    void setTaskState(state state);
+    void setTaskState(HsFsm::state state);
 
     /**
      * @brief setInitState
@@ -104,15 +114,30 @@ protected:
      * @brief setExitingAction 程序退出
      */
     void setExitingAction();
+
+
+    /**
+     * @brief setRecallState 重置反馈结果状态
+     * @param state
+     */
+    void setRecallState(State state);
+    /**
+      *
+        反馈的状态 参数
+      *
+      */
 protected:
     std::string taskName;
     int typeCode;
     bool taskRunStatus;
-    State state;
-
+    std::vector<string> recallMessage;
 private:
     std::shared_ptr<fsm::stack> fsmStack;
     std::shared_ptr<semaphore> notitySem;
+    std::shared_ptr<ThreadPool> threadpool;
+    State currentState;
+private:
+    std::shared_ptr<HsTaskFramework> framework;
 
 };
 

@@ -21,16 +21,30 @@ void MainWindow::setRosHandler(ros::NodeHandle &nh)
 
 void MainWindow::initRosParam()
 {
-    nh.serviceClient<hirop_msgs::taskInputCmd>("taskInputCmd");
-    nh.subscribe("taskRet", 1, &MainWindow::taskRetCb,this);
+    taskInputCmd = nh.serviceClient<hirop_msgs::taskInputCmd>("/TaskServerCmd");
+    taskRet = nh.subscribe("taskRet", 1, &MainWindow::taskRetCb,this);
 }
 
 void MainWindow::taskRetCb(const hirop_msgs::taskCmdRet &ret)
 {
-
+    std::string msg = ret.message;
+    std::cout << "callback resut :"<< ret.ret<<std::endl;
+    ui->plainTextEdit->setPlainText(QString::fromStdString(msg));
 }
 
 void MainWindow::on_pushButton_clicked()
 {
+    hirop_msgs::taskInputCmd cmd;
+    cmd.request.param = std::vector<std::string>{"test..."};
+    cmd.request.behavior = "running";
+    taskInputCmd.call(cmd);
     ROS_INFO_STREAM("RUNNING ");
+}
+
+void MainWindow::on_pushButton_2_clicked()
+{
+    hirop_msgs::taskInputCmd cmd;
+    cmd.request.param = std::vector<std::string>{"test..."};
+    cmd.request.behavior = "stopping";
+    taskInputCmd.call(cmd);
 }

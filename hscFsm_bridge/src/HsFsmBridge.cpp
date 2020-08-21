@@ -6,7 +6,7 @@ using namespace HsFsm;
 
 HsFsmBridge::HsFsmBridge(ros::NodeHandle &node):nh(node),loopStop(false),frameExist(false),running(false)
 {
-    nh.param("TaskServer",cmdServerName, std::string("TaskServerDefault"));
+    nh.param("TaskServer",cmdServerName, std::string("TaskServerCmd"));
     nh.param("TaskName", taskName, std::string("pickplace"));
     nh.param("taskResTopName", taskResTopName, std::string("pickplacePub"));
 
@@ -19,6 +19,9 @@ HsFsmBridge::HsFsmBridge(ros::NodeHandle &node):nh(node),loopStop(false),frameEx
     startTaskServer = nh.advertiseService("startTaskServer", &HsFsmBridge::startTaskCmdCB,this);
 
     stopTaskServer = nh.advertiseService("stopTaskServer", &HsFsmBridge::stopTaskCmdCB,this);
+
+    getTaskListServer = nh.advertiseService("getTaskList", &HsFsmBridge::getTaskListCb,this);
+
 
     retPub = nh.advertise<hirop_msgs::taskCmdRet>(taskResTopName,1);
 
@@ -55,7 +58,7 @@ bool HsFsmBridge::taskServerCmdCB(hirop_msgs::taskInputCmdRequest &req, hirop_ms
      return true;
 }
 
-bool HsFsmBridge::getStatusCmdCB(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
+bool HsFsmBridge::getStatusCmdCB(std_srvs::EmptyRequest & req  , std_srvs::EmptyResponse &res)
 {
     if(framework == nullptr)
         return false;
@@ -91,6 +94,12 @@ bool HsFsmBridge::stopTaskCmdCB(std_srvs::TriggerRequest &req, std_srvs::Trigger
     running = false;
     ROS_INFO_STREAM("ROS Task event stopTaskCmd ");
     res.success = 1;
+    return true;
+}
+
+bool HsFsmBridge::getTaskListCb(std_srvs::EmptyRequest &req,  std_srvs::EmptyResponse &res)
+{
+    framework->debugTaskList();
     return true;
 }
 
@@ -170,8 +179,10 @@ void HsFsmBridge::cmdCbThreadLoop()
 
 void HsFsmBridge::loadTask()
 {
-    taskName;
-    framework = std::make_shared<HsFsm::PickPlaceTask>("pickplace");
+//    taskName;
+//    framework = std::make_shared<HsFsm::PickPlaceTask>("pickplace");
+    std::shared_ptr<HsTaskFramework> ptr = std::make_shared<HsFsm::PickPlaceTask>("pickplace");
+    framework = std::make_shared<HsFsm::HsTaskFramework>(ptr);
     std::cout <<framework->getTaskName()<<std::endl;
     frameExist = true;
 }

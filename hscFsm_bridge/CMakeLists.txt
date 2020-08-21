@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-project(hscFsm_bridge)
+
+project(hscfsm_bridge)
 
 add_compile_options(-std=c++11 -D_LINUX_)
 
@@ -42,7 +43,8 @@ list(APPEND ALL_SOURCE ${ALL_FRAMEWORK} ${ALL_APPTEST})
 #message(${ALL_SOURCE})
 
 add_executable(${PROJECT_NAME}  ${ALL_SOURCE})
-add_dependencies(${PROJECT_NAME} ${hirop_msgs_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS} )
+
+add_dependencies(${PROJECT_NAME} ${hirop_msgs_EXPORTED_TARGETS}  ${${PROJECT_NAME}_EXPORTED_TARGETS} )
 
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}

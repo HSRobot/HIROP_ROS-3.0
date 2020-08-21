@@ -10,22 +10,30 @@ class PickPlaceTask :public HsTaskFramework
 public:
     PickPlaceTask(const string &taskName);
 
+    /**
+     * @brief init
+     */
     virtual void init();
 
-    virtual bool setCommand(const CmdInputData &cmd);
-
+    /**
+     * @brief quit
+     */
     virtual void quit();
 
-    virtual State getState();
-
+    /**
+     * @brief registerTaskList
+     * @return
+     */
     virtual bool registerTaskList();
 
-//    virtual std::string getTaskName();
 private:
 
     void transInit2Run(const std::vector<std::string> &args);
 private:
     std::map<std::string, int> taskMap;
+
+private:
+    bool timerRun;
 };
 
 
