@@ -6,13 +6,15 @@
   <arg name="move_group_config_path"  default="$(find pickplace_bridge)/config/serialPPMoveGroupConfig.yaml"/>
 
   <node pkg="pickplace_bridge" type="pickplace_bridge" name="pickplace_bridge" output="screen">
-      <param name="move_group" type="string" value="arm" />
      <param name="generator_config_path" type="str" value="$(arg generator_config_path)"/>
      <param name="actuator_config_path" type="str" value="$(arg actuator_config_path)"/>
      <param name="move_group_config_path" type="str" value="$(arg move_group_config_path)"/>
   </node>
 
   <!-- launch-prefix="gnome-terminal -e" -->
-  <node name="gripper_action" pkg="gripper_bridge" type="serial_action.py"  output="screen" />	
+  <arg name="move_group"  default="arm" />
+  <node name="serial_gripper" pkg="gripper_bridge" type="serial_gripper.py"  output="screen" launch-prefix="gnome-terminal -e" >
+    <param name="move_group" type="str" value="$(arg move_group)" />
+  </node>	
 
 </launch>

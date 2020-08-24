@@ -14,14 +14,6 @@ PickPlaceService::~PickPlaceService()
 
 int PickPlaceService::start()
 {
-
-    // n_pick.param("/pickplace_bridge/generator_config_path",  generator_config_path_,
-    //              std::string("/home/fshs/work/hirop/config/ClassicGenConfig.yaml"));
-    // n_pick.param("/pickplace_bridge/actuator_config_path",   actuator_config_path_,
-    //              std::string("/home/fshs/work/hirop/config/ClassicPPConfig.yaml"));
-
-    // n_pick.param("/pickplace_bridge/move_group_name", arm, std::string("arm1"));
-
     n_pick.param("generator_config_path",  generator_config_path_,
                  std::string("/home/fshs/work/hirop/config/ClassicGenConfig.yaml"));
     n_pick.param("actuator_config_path",   actuator_config_path_,
@@ -29,10 +21,6 @@ int PickPlaceService::start()
 
     n_pick.param("move_group_config_path", move_group_config_path_, 
                 std::string("/home/fshs/work/hirop/config/serialPPMoveGroupConfig.yaml"));
-
-    n_pick.param("move_group_name", arm, std::string("arm"));
-
-    ROS_INFO_STREAM(arm << "<<----------------");
 
     ROS_INFO("generator_config_path_:%s", generator_config_path_.c_str());
     ROS_INFO("actuator_config_path_:%s", actuator_config_path_.c_str());
@@ -55,10 +43,9 @@ int PickPlaceService::start()
     setVelocityAcceleratedServer = n_pick.advertiseService("setVelocityAccelerated", &PickPlaceService::setVelocityAcceleratedCB, this);
 
     showObjClient = n_pick.serviceClient<hirop_msgs::PubObject>("/loadObject");
-    // removeObjectClient = n_pick.serviceClient<hirop_msgs::removeObject>("/rmObject");
     /****/
     groupConfig(move_group_config_path_);
-    this->pickplacePtr->setMoveGroup(arm);
+    this->pickplacePtr->setMoveGroup();
     return 0;
 }
 
@@ -105,7 +92,7 @@ bool PickPlaceService::setGenActuatorCB(hirop_msgs::SetGenActuator::Request &req
 
 */
     res.isSucceeful = initGenAndActParam(generatorName, gen_configFile, actuatorName, act_configFile);
-    this->pickplacePtr->setMoveGroup(arm);
+    this->pickplacePtr->setMoveGroup();
     return res.isSucceeful;
 }
 
@@ -161,7 +148,6 @@ bool PickPlaceService::moveToNameCB(hirop_msgs::MoveToName::Request &req, hirop_
 
 bool PickPlaceService::pickCB(hirop_msgs::Pick::Request &req, hirop_msgs::Pick::Response &res)
 {
-    removeObj();
     PoseStamped pickPose;
     pickPose.frame_id = req.pickPos.header.frame_id;
     pickPose.pose.position.x = req.pickPos.pose.position.x;
@@ -199,12 +185,10 @@ bool PickPlaceService::placeCB(hirop_msgs::Place::Request &req, hirop_msgs::Plac
 
     this->pickplacePtr->setPlacePose(placePose);
     if(this->pickplacePtr->place() != 0){
-        removeObj();
         res.isPlaceFinsh = false;
         return false;
     }
     res.isPlaceFinsh = true;
-    removeObj();
     return true;
 }
 
@@ -291,14 +275,4 @@ int PickPlaceService::groupConfig(std::string path)
     return this->pickplacePtr->groupConfig(path);
 }
 
-bool PickPlaceService::removeObj()
-{
-    // hirop_msgs::removeObject srv;
-    // srv.request.id = "object";
-    // if(removeObjectClient.call(srv))
-    // {
-    //     return srv.response.result;
-    // }
-    // return false;
-}
 /****/
