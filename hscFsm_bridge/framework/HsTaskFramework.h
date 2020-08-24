@@ -6,6 +6,7 @@
 #include <fsmframeworkinterface.h>
 #include <ThreadSem.h>
 #include <ThreadPool.h>
+#include <ros/ros.h>
 namespace HsFsm {
 
 typedef const char* state;
@@ -22,7 +23,7 @@ class HsTaskFramework: public FsmFramworkInterface
 public:
     HsTaskFramework();
 
-    HsTaskFramework(std::shared_ptr<HsTaskFramework> &fsm);
+    HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFramework> &fsm);
 
     /**
      * @brief init 子任务的初始化
@@ -42,6 +43,7 @@ public:
      */
     virtual void quit();
 
+public:
     /**
      * @brief getState 获取子任务的当前状态
      * @param state
@@ -121,11 +123,13 @@ protected:
      * @param state
      */
     void setRecallState(State state);
+
     /**
-      *
-        反馈的状态 参数
-      *
-      */
+     * @brief getRosHandler
+     * @return
+     */
+    ros::NodeHandle* getRosHandler();
+
 protected:
     std::string taskName;
     int typeCode;
@@ -138,6 +142,7 @@ private:
     State currentState;
 private:
     std::shared_ptr<HsTaskFramework> framework;
+    ros::NodeHandle nh;
 
 };
 

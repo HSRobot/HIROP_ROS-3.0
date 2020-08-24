@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include <ros/ros.h>
+#include <std_msgs/Int16.h>
 using namespace HsFsm;
 typedef std::pair<string, int> elment;
 
@@ -13,6 +14,7 @@ PickPlaceTask::PickPlaceTask(const string &taskName)
 
 void PickPlaceTask::init()
 {
+    voice_order_sub = getRosHandler()->subscribe("/robot_order", 1, &PickPlaceTask::shake_hand_order_CallBack, this);
     // 自动转为 init 状态
     // 用户自定义添加内容
 }
@@ -21,10 +23,9 @@ void PickPlaceTask::quit()
 {
     //会自动转状态为 quit
     // 用户自定义添加内容
-
 }
 
-/**
+/**.,
  * @brief PickPlaceTask::registerTaskList 用户重点关心
  * @return
  */
@@ -46,26 +47,62 @@ bool PickPlaceTask::registerTaskList()
          */
         registerTask("init","initing", [&](callParm  &parm){
 
-//            std::cout << "enter  preparing status "<<std::endl;
+            std::cout << "enter init state, behaviour: initing" << std::endl;
             // state 的状态反馈 可选
             typeCode = 0;
             taskRunStatus = true;
-            setTaskState("prepare");
+
+            State sta;
+            sta.meassage = {"enter init state, behaviour: initing"};
+            setRecallState(sta);
             notityRecall();
 
+            setTaskState("prepare");
+
         });
 
+        /*
+         * 必须注册的事件
+         * quit 任务退出
+         * 设备关闭
+         * 程序关闭
+         */
+        registerTask("quit", "initing", [&](callParm  &parm){
+                std::cout << "enter quit state, behaviour: initing" << std::endl;
+                timerRun = false;
+                notityRecall();
+        });
+
+        //prepare initing quiting
+        registerTask("prepare","initing", [&](callParm  &parm){
+                std::cout << "enter prepare state, behaviour: initing" << std::endl;
+        });
 
         registerTask("prepare","running", [&](callParm  &parm){
-                std::cout << "parm : "<<std::endl;
-                for(auto it :parm)
-                {
-                    std::cout<<it <<" "<<std::endl;
-                }
+                std::cout << "enter prepare state, behaviour: running" << std::endl;
+//                std::cout << "parm : "<<std::endl;
+//                for(auto it :parm)
+//                {
+//                    std::cout<<it <<" "<<std::endl;
+//                }
+
                 timerRun = true;
+                std::cout << "Ready to shake_hand or grasp_toy!Please have a choice!" << std::endl;
+                /*******/
+                State sta;
+                sta.meassage = {"enter prepare state, behaviour: running"};
+                setRecallState(sta);
+                notityRecall();
+
                 setTaskState("run");
+
+
         });
 
+        registerTask("run", "stopping", [&](callParm  &parm){
+                timerRun = false;
+                setTaskState("init");
+        });
 
         /*
          * 必须注册事件
@@ -77,23 +114,15 @@ bool PickPlaceTask::registerTaskList()
                             std::cout << "running ... "<<std::endl;
                             ros::Duration(0.5).sleep();
                         }
+
+//                         setTaskState("quit");
+
+
          });
 
-        registerTask("run", "stopping", [&](callParm  &parm){
-                timerRun = false;
-                setTaskState("init");
-        });
 
-        /*
-         * 必须注册的事件
-         * quit 任务退出
-         * 设备关闭
-         * 程序关闭
-         */
-        registerTask("quit", "initing", [&](callParm  &parm){
-                timerRun = false;
-                notityRecall();
-        });
+
+
 
 
     }catch(std::exception &e)
@@ -119,4 +148,12 @@ void PickPlaceTask::transInit2Run(const std::vector<string> &args)
     //
     setTaskState("prepare");
     notityRecall();
+}
+
+void PickPlaceTask::shake_hand_order_CallBack(const std_msgs::Int16::ConstPtr & msg)
+{
+    voice_order = msg->data;
+    std::cout << "voice_order: " << voice_order << std::endl;
+    if (voice_order == 0)
+        setTaskState("init");
 }

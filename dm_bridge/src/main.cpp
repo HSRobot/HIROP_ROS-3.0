@@ -107,7 +107,12 @@ public:
 
     bool savePoseMulti(hirop_msgs::savePoseData::Request & req, hirop_msgs::savePoseData::Response& rep)
     {
+<<<<<<< HEAD
         if(writer.addPoseDataMulti(req.pose) == 0)
+=======
+        //req.pose.
+        if(writer.savePoseDataMulti(req.pose) == 0)
+>>>>>>> 3c69bd45ee4f658d494af1a1f5649646956bee3d
         {
             ROS_INFO("add pose SUCCESS");
             rep.result = 0;
