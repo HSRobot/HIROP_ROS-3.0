@@ -67,6 +67,8 @@ bool PickPlaceTask::registerTaskList()
         });
 
 
+
+
         registerTask("prepare","running", [&](callParm  &parm){
                 std::cout << "parm : "<<std::endl;
                 for(auto it :parm)
