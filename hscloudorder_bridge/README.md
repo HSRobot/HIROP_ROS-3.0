@@ -11,9 +11,13 @@
 
 #### 安装教程
 
-1.  git init
-2.  git sumbmoudle sync
-3.  git sumbmoudle update
+	需要在/home/用户者下下载相关依赖包
+[submodule "hiredis"]
+        path = hiredis
+        url = https://github.com/redis/hiredis.git
+[submodule "rapidjson"]
+        path = rapidjson
+        url = https://github.com/Tencent/rapidjson.git
 
 #### 使用说明
 

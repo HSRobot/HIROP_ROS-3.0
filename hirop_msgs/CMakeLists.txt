@@ -22,6 +22,7 @@ add_message_files(
 	taskCmdRet.msg
 	FixedAngle.msg
 	Pose.msg
+	orderDesc.msg
 
 )
 
@@ -101,6 +102,9 @@ updateParam.srv
 UpdatePCL.srv
 updatePCParm.srv
 
+cancelCloudOrder.srv
+getCloudOrder.srv
+finishCloudOrder.srv
 )
 
 generate_messages(

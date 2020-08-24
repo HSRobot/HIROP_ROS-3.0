@@ -42,6 +42,7 @@ public:
      */
     virtual void quit();
 
+public:
     /**
      * @brief getState 获取子任务的当前状态
      * @param state

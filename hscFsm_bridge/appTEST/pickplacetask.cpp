@@ -21,7 +21,6 @@ void PickPlaceTask::quit()
 {
     //会自动转状态为 quit
     // 用户自定义添加内容
-
 }
 
 /**
@@ -53,35 +52,7 @@ bool PickPlaceTask::registerTaskList()
             setTaskState("prepare");
             notityRecall();
 
-        });
 
-
-        registerTask("prepare","running", [&](callParm  &parm){
-                std::cout << "parm : "<<std::endl;
-                for(auto it :parm)
-                {
-                    std::cout<<it <<" "<<std::endl;
-                }
-                timerRun = true;
-                setTaskState("run");
-        });
-
-
-        /*
-         * 必须注册事件
-         * run 任务执行
-         *
-         */
-        registerTask("run", "initing", [&](callParm  &parm){
-                        while(ros::ok() && timerRun){
-                            std::cout << "running ... "<<std::endl;
-                            ros::Duration(0.5).sleep();
-                        }
-         });
-
-        registerTask("run", "stopping", [&](callParm  &parm){
-                timerRun = false;
-                setTaskState("init");
         });
 
         /*
@@ -94,6 +65,41 @@ bool PickPlaceTask::registerTaskList()
                 timerRun = false;
                 notityRecall();
         });
+
+
+        registerTask("prepare","running", [&](callParm  &parm){
+                std::cout << "parm : "<<std::endl;
+                for(auto it :parm)
+                {
+                    std::cout<<it <<" "<<std::endl;
+                }
+                timerRun = true;
+                setTaskState("run");
+
+        });
+
+        registerTask("run", "stopping", [&](callParm  &parm){
+                timerRun = false;
+                setTaskState("init");
+        });
+
+        /*
+         * 必须注册事件
+         * run 任务执行
+         *
+         */
+        registerTask("run", "initing", [&](callParm  &parm){
+                        while(ros::ok() && timerRun){
+                            std::cout << "running ... "<<std::endl;
+                            ros::Duration(0.5).sleep();
+                        }
+
+
+         });
+
+
+
+
 
 
     }catch(std::exception &e)
