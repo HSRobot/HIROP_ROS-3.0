@@ -188,7 +188,7 @@ void HsFsmBridge::loadTask()
 //    taskName;
 //    framework = std::make_shared<HsFsm::PickPlaceTask>("pickplace");
     std::shared_ptr<HsTaskFramework> ptr = std::make_shared<HsFsm::PickPlaceTask>("pickplace");
-    framework = std::make_shared<HsFsm::HsTaskFramework>(ptr);
+    framework = std::make_shared<HsFsm::HsTaskFramework>(nh,ptr);
     std::cout <<framework->getTaskName()<<std::endl;
     frameExist = true;
 }

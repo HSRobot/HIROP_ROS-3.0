@@ -1,17 +1,18 @@
 #include "HsTaskFramework.h"
 using namespace HsFsm;
 #include <functional>
+
 using namespace std;
 std::shared_ptr<semaphore> HsTaskFramework::notitySem = nullptr;
 HsFsm::State HsTaskFramework::currentState;
-
 HsTaskFramework::HsTaskFramework()
 {
     fsmStack = std::make_shared<fsm::stack>();
 }
 
-HsTaskFramework::HsTaskFramework(std::shared_ptr<HsTaskFramework> &fsm):typeCode(0),taskRunStatus(false)
+HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFramework> &fsm):typeCode(0),taskRunStatus(false)
 {
+    this->nh = nh;
     framework = fsm;
     fsmStack = fsm->fsmStack;
     notitySem = std::make_shared<semaphore>(fsm->taskName);
@@ -143,4 +144,9 @@ void HsTaskFramework::setRecallState(State& state)
 //    taskRunStatus = state.status;
 //    recallMessage = state.meassage;
     this->currentState = state;
+}
+
+ros::NodeHandle *HsTaskFramework::getRosHandler()
+{
+    return &nh;
 }

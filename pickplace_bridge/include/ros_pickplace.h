@@ -53,7 +53,6 @@ public:
     bool setVelocityAcceleratedCB(hirop_msgs::setVelocityAccelerated::Request& req, hirop_msgs::setVelocityAccelerated::Response& rep);
 
     bool showObj(PoseStamped& pose);
-    bool removeObj();
     int groupConfig(std::string path);
     /****/
 private:
@@ -77,8 +76,6 @@ private:
     ros::ServiceServer setVelocityAcceleratedServer;
 
     ros::ServiceClient showObjClient;
-    ros::ServiceClient removeObjectClient;
-    std::string arm;
     /****/
     std::string generator_config_path_;
     std::string actuator_config_path_;

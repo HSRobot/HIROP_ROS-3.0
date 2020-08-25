@@ -1,8 +1,8 @@
 parameters:
   moveitConfig:
-    name: arm1
+    name: arm
   gripperConfig:
-    name: gripper1
+    name: gripper
     openGripper: [0, 0, 0, 0]
-    closeGripper: [0, 0, 0.51, 0]
+    closeGripper: [0, 0, 0.30, 0]
     # closeGripper: [-0.51, -0.54, 0.51, -0.54]

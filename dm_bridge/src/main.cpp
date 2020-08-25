@@ -11,7 +11,7 @@
 #include <hirop_msgs/savePoseData.h>
 #include <hirop_msgs/loadPoseData.h>
 #include <hirop_msgs/saveDataEnd.h>
-#include  <hirop_msgs/setRobotType.h>
+#include <hirop_msgs/setRobotType.h>
 
 using namespace hirop::data_manager;
 
@@ -66,13 +66,13 @@ public:
     {
         std::vector<double> joint  = req.joint;
         ROS_INFO_STREAM(joint[0] << " "  << joint[1] << " "  << joint[2] << " "  << joint[3] << " "  << joint[4] << " "  << joint[5]);
-        if(writer.saveJointDataMulti(joint) == 0)
+        if(writer.addJointDataMulti(joint) == 0)
         {
-            ROS_INFO("save multi SUCCESS");
+            ROS_INFO("add multi SUCCESS");
             rep.result = 0;
             return true;
         }
-        ROS_INFO("save multi FAILED");
+        ROS_INFO("add multi FAILED");
         return false;
     }
 
@@ -107,14 +107,13 @@ public:
 
     bool savePoseMulti(hirop_msgs::savePoseData::Request & req, hirop_msgs::savePoseData::Response& rep)
     {
-        req.pose.
-        if(writer.savePoseDataMulti(req.pose) == 0)
+        if(writer.addPoseDataMulti(req.pose) == 0)
         {
-            ROS_INFO("save pose SUCCESS");
+            ROS_INFO("add pose SUCCESS");
             rep.result = 0;
             return true;
         }
-        ROS_INFO("save pose FAILED");
+        ROS_INFO("add pose FAILED");
         return false;
     }
 

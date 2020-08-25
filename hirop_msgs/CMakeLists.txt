@@ -79,7 +79,7 @@ moveSigleAixs.srv
 moveToMultiPose.srv
 moveToSiglePose.srv
 shakeHandSet.srv
-
+force_algorithmChange.srv
 dualRbtraject.srv      
 pickPlaceData.srv
 setVelocityAccelerated.srv
