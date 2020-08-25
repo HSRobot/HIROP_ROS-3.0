@@ -50,7 +50,7 @@ bool PickPlaceTask::registerTaskList()
             typeCode = 0;
             taskRunStatus = true;
             setTaskState("prepare");
-            notityRecall();
+//            notityRecall();
 
 
         });
@@ -76,12 +76,21 @@ bool PickPlaceTask::registerTaskList()
                     std::cout<<it <<" "<<std::endl;
                 }
                 timerRun = true;
+
+                State sta;
+                sta.meassage = {"1111111111111111"};
+                sta.status = 1;
+                setRecallState(sta);
+                notityRecall();
+
                 setTaskState("run");
 
         });
 
         registerTask("run", "stopping", [&](callParm  &parm){
                 timerRun = false;
+                notityRecall();
+
                 setTaskState("init");
         });
 

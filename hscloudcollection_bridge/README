@@ -1,0 +1,12 @@
+1. 需要下载一些依赖包   
+	包括 redis hiredis rapidjson   
+
+链接如下所示：  
+
+[submodule "hiredis"]
+        path = hiredis
+        url = https://github.com/redis/hiredis.git  
+[submodule "rapidjson"]
+        path = rapidjson
+        url = https://github.com/Tencent/rapidjson.git  
+

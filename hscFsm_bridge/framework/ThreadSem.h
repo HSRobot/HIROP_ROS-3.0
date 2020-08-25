@@ -13,7 +13,7 @@ public:
     void wait()
     {
         unique_lock<mutex> lck(mtk);
-        --count;
+        count -= 1;
         if ( count < 0)//资源不足挂起线程
         {
 //            std::cout << name <<" sem waiting .."<<std::endl;
