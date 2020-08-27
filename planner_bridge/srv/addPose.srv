@@ -1,0 +1,4 @@
+geometry_msgs/PoseStamped[] pose
+int8[] type
+---
+int8 result

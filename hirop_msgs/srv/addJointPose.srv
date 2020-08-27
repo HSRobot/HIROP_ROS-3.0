@@ -1,0 +1,3 @@
+hirop_msgs/JointData[] joints
+---
+int8 result
