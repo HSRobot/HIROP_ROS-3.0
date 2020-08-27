@@ -1,5 +1,6 @@
 string task
+string state
 string behevior
-string message
+string[] message
 uint8  ret
 

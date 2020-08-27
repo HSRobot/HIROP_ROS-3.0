@@ -209,7 +209,7 @@ namespace fsm
         }
         std::string get_trigger() const {
             std::stringstream ss;
-//            return ss << current_trigger, ss.str();
+            return ss << current_trigger, ss.str();
             return  ss.str();
 
         }
@@ -278,15 +278,15 @@ public:
             std::deque< states::reverse_iterator > aborted;
             for( auto it = deque.rbegin(); it != deque.rend(); ++it ) {
                 fsm::state &self = *it;
+                current_trigger = trigger;
                 if( !call(self,trigger) ) {
                     aborted.push_back(it);
                     continue;
                 }
                 for( auto it = aborted.begin(), end = aborted.end(); it != end; ++it ) {
-                    call(**it, string("quit"));
+                    call(**it, string("quiting"));
                     deque.erase(--(it->base()));
                 }
-                current_trigger = trigger;
                 return true;
             }
             return false;

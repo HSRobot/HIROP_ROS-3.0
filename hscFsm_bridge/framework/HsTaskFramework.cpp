@@ -2,10 +2,12 @@
 using namespace HsFsm;
 #include <functional>
 
+using namespace std;
+std::shared_ptr<semaphore> HsTaskFramework::notitySem = nullptr;
+HsFsm::State HsTaskFramework::currentState;
 HsTaskFramework::HsTaskFramework()
 {
     fsmStack = std::make_shared<fsm::stack>();
-    notitySem = std::make_shared<semaphore>(taskName);
 }
 
 HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFramework> &fsm):typeCode(0),taskRunStatus(false)
@@ -13,7 +15,8 @@ HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFram
     this->nh = nh;
     framework = fsm;
     fsmStack = fsm->fsmStack;
-    notitySem = fsm->notitySem;
+    notitySem = std::make_shared<semaphore>(fsm->taskName);
+
     threadpool = std::make_shared<ThreadPool>(4);
 }
 
@@ -93,7 +96,7 @@ bool HsTaskFramework::setCommandProxy(const CmdInputData &cmd)
 
 void HsTaskFramework::notityRecall()
 {
-    currentState = getTaskState();
+//    currentState = getTaskState();
     notitySem->signal();
 }
 
@@ -110,9 +113,10 @@ State HsTaskFramework::getTaskState()
      State current;
      current.meassage = ret.args;
      current.stateName = ret.name;
-     current.Type = typeCode;
-     current.status = taskRunStatus;
-     current.meassage = recallMessage;
+     current.Type = currentState.Type;
+     current.status = currentState.status;
+     current.meassage = currentState.meassage;
+     current.behevior = fsmStack->get_trigger();
      return current;
 }
 
@@ -134,11 +138,11 @@ void HsTaskFramework::setExitingAction()
     threadpool->Stop();
 }
 
-void HsTaskFramework::setRecallState(State state)
+void HsTaskFramework::setRecallState(State& state)
 {
-    typeCode = state.Type;
-    taskRunStatus = state.status;
-    recallMessage = state.meassage;
+//    typeCode = state.Type;
+//    taskRunStatus = state.status;
+//    recallMessage = state.meassage;
     this->currentState = state;
 }
 

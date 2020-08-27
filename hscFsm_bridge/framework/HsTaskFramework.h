@@ -30,18 +30,20 @@ public:
      */
     virtual void init();
 
+
     /**
-     * @brief setCommand 子任务 的相关行为
-     * @param behevior
+     * @brief registerTaskList 子任务的绑定事件的注册
      * @return
      */
-    bool setCommand(const CmdInputData &cmd);
+    virtual bool registerTaskList();
 
 
     /**
      * @brief quit  子任务的退出
      */
     virtual void quit();
+
+/*********************************************************************/
 
 public:
     /**
@@ -51,13 +53,12 @@ public:
      */
      State getState();
 
-    /**
-     * @brief registerTaskList 子任务的绑定事件的注册
-     * @return
-     */
-    virtual bool registerTaskList();
-
-
+     /**
+      * @brief setCommand 子任务 的相关行为
+      * @param behevior
+      * @return
+      */
+     bool setCommand(const CmdInputData &cmd);
 
 protected:
     /**
@@ -122,7 +123,7 @@ protected:
      * @brief setRecallState 重置反馈结果状态
      * @param state
      */
-    void setRecallState(State state);
+    void setRecallState(State &state);
 
     /**
      * @brief getRosHandler
@@ -137,9 +138,9 @@ protected:
     std::vector<string> recallMessage;
 private:
     std::shared_ptr<fsm::stack> fsmStack;
-    std::shared_ptr<semaphore> notitySem;
+    static std::shared_ptr<semaphore> notitySem;
     std::shared_ptr<ThreadPool> threadpool;
-    State currentState;
+    static HsFsm::State currentState;
 private:
     std::shared_ptr<HsTaskFramework> framework;
     ros::NodeHandle nh;

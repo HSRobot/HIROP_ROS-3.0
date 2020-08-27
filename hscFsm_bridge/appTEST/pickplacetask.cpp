@@ -78,6 +78,8 @@ bool PickPlaceTask::registerTaskList()
                 std::cout << "enter prepare state, behaviour: initing" << std::endl;
         });
 
+
+
         registerTask("prepare","running", [&](callParm  &parm){
                 std::cout << "enter prepare state, behaviour: running" << std::endl;
 //                std::cout << "parm : "<<std::endl;
@@ -87,9 +89,13 @@ bool PickPlaceTask::registerTaskList()
 //                }
 
                 timerRun = true;
+
+                State sta;
+                sta.meassage = {"1111111111111111"};
+                sta.status = 1;
+
                 std::cout << "Ready to shake_hand or grasp_toy!Please have a choice!" << std::endl;
                 /*******/
-                State sta;
                 sta.meassage = {"enter prepare state, behaviour: running"};
                 setRecallState(sta);
                 notityRecall();
@@ -101,6 +107,8 @@ bool PickPlaceTask::registerTaskList()
 
         registerTask("run", "stopping", [&](callParm  &parm){
                 timerRun = false;
+                notityRecall();
+
                 setTaskState("init");
         });
 

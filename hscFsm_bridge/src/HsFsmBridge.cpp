@@ -10,7 +10,7 @@ HsFsmBridge::HsFsmBridge(ros::NodeHandle &node):nh(node),loopStop(false),frameEx
     nh.param("TaskName", taskName, std::string("pickplace"));
     nh.param("taskResTopName", taskResTopName, std::string("pickplacePub"));
 
-    sem = std::make_shared<semaphore>(cmdServerName);
+    sem = std::make_shared<semaphore>("TaskServer");
 
     cmdServer = nh.advertiseService(cmdServerName, &HsFsmBridge::taskServerCmdCB,this);
 
@@ -133,13 +133,16 @@ void HsFsmBridge::cmdCbThreadLoop()
     });
 
 //    auto loop2 = std::async(std::launch::async,[&](){
+    thread::id t2p;
     std::thread t2([&]{
+//        t2p = std::this_thread::get_id();
         while(!loopStop){
+
            framework->waitRecall();
            State ret = framework->getState();
 
            hirop_msgs::taskCmdRet RetMsg;
-
+           RetMsg.task = taskName;
            if(!ret.status){
                switch (ret.Type){
                    case -2:{
@@ -157,15 +160,18 @@ void HsFsmBridge::cmdCbThreadLoop()
                           break;
                     }
                 }
-               RetMsg.ret = ret.Type;
+               RetMsg.ret = ret.status;
+               RetMsg.state = ret.stateName;
+               RetMsg.behevior = ret.behevior;
+               RetMsg.message = ret.meassage;
                retPub.publish(RetMsg);
                continue;
            }
 
            RetMsg.ret = ret.status;
-           RetMsg.task = ret.stateName;
+           RetMsg.state = ret.stateName;
            RetMsg.behevior = ret.behevior;
-//           RetMsg.message = ret.meassage.at(0);
+           RetMsg.message = ret.meassage;
            retPub.publish(RetMsg);
            ROS_DEBUG_STREAM("#action ok");
 
