@@ -1,4 +1,4 @@
-#ifndef REDISCONTROL_H
+﻿#ifndef REDISCONTROL_H
 #define REDISCONTROL_H
 #include <iostream>
 #include "rapidjson/document.h"
@@ -8,6 +8,8 @@
 #include <hiredis/hiredis.h>
 #include <string>
 #include <queue>
+
+#define HSREDISCHANNEL "publish XZJQR_DATAARR %s"
 using namespace std;
 class redisControl
 {
@@ -35,8 +37,18 @@ public:
      * @param channel 特定的管道
      * @return 返回的参数
      */
-    int publish(const std::string &channel = "publish XZJQR_DATAARR %s");
+    int publish(const std::string &channel = HSREDISCHANNEL);
 
+    /**
+     * @brief setJsonkey
+     * @param keys
+     */
+    void setJsonkey(const std::vector<string> &keys);
+
+    /**
+     * @brief getJsonKey
+     */
+    int getJsonKey() const;
 private:
     void transfromJson(const std::vector<string> &keys, const std::vector<double> &val, string &out);
     double getTime();

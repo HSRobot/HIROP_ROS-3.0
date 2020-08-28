@@ -62,6 +62,18 @@ int redisControl::publish( const string &channel)
     return 0;
 }
 
+void redisControl::setJsonkey(const std::vector<string> &keys)
+{
+    this->keys.clear();
+    this->keys.resize(keys.size());
+    copy(keys.begin(), keys.end(), this->keys.begin());
+}
+
+int redisControl::getJsonKey() const
+{
+    return keys.size();
+}
+
 void redisControl::transfromJson(const std::vector<string> &keys, const std::vector<double> &val,std::string &out)
 {
     Document document; 			// Null
@@ -69,7 +81,7 @@ void redisControl::transfromJson(const std::vector<string> &keys, const std::vec
     //下面会遇到多次使用allocator的情况，采用这种方式避免多次调用GetAllocator()去获取allocator
     Document::AllocatorType& allocator = document.GetAllocator();
 
-    /***********************/
+    /*********keys - value json 格式**************/
     Value value(kObjectType);
     for(int i = 0; i< keys.size() ; i++){
         value.SetDouble(val.at(i));

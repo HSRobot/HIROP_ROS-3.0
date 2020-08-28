@@ -1,16 +1,21 @@
 #include "motion.h"
-
+#include <moveit_msgs/DisplayTrajectory.h>
 motion::motion(ros::NodeHandle* node):Node(node){
-    generateMoveGroup("arm0","link6");
-    generateMoveGroup("arm1","link6");
+
+    Node->param("/robot_group", robot_group, std::string("arm"));
+    Node->param("/end_link", effect_link, std::string("link6"));
+
+    generateMoveGroup(robot_group, effect_link);
+//    generateMoveGroup("arm1","link6");
+
     ass_flag_leftRbMotion=false;
     ass_flag_rightRbMotion=false;
 
-    pub_robLeft  =Node->advertise<trajectory_msgs::JointTrajectory>("/UR51/joint_path_command",1);
-    pub_robRight =Node->advertise<trajectory_msgs::JointTrajectory>("/UR52/joint_path_command",1);
+    pub_rob  =Node->advertise<trajectory_msgs::JointTrajectory>("/plan/joint_path_command",1);
+//    pub_robRight =Node->advertise<trajectory_msgs::JointTrajectory>("/UR52/joint_path_command",1);
 
-    rb0_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/UR51/robot_status",1,boost::bind(&motion::callback_rob0Status_subscriber,this,_1));
-    rb1_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/UR52/robot_status",1,boost::bind(&motion::callback_rob1Status_subscriber,this,_1));
+    rb0_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/robot_status",1,boost::bind(&motion::callback_rob0Status_subscriber,this,_1));
+//    rb1_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/UR52/robot_status",1,boost::bind(&motion::callback_rob1Status_subscriber,this,_1));
 
     dualRobMotion_server=Node->advertiseService("motion_bridge/dualRobMotion_JointTraject", &motion::dualRobMotion, this);
     motionBridgeStart_server=Node->advertiseService("motion_bridge/motionBridgeStart", &motion::motionBridgeStartCB, this);
@@ -53,59 +58,59 @@ bool motion::dualRobMotion(hirop_msgs::dualRbtraject::Request& req, hirop_msgs::
 //            pub_robLeft.publish(req.robotMotionTraject_list[i].robot_jointTra);
 //        }
 //    }
-    bool flag_leftRbMotion=false;
-    bool flag_rightRbMotion=false;
-    ass_flag_leftRbMotion=false;
-    ass_flag_rightRbMotion=false;
-    if(req.robotMotionTraject_list[0].moveGroup_name==MoveGroupList[0].groupName){
-        if(req.robotMotionTraject_list[0].robot_jointTra.points.size()>0){
-            pub_robLeft.publish(req.robotMotionTraject_list[0].robot_jointTra);
-            flag_leftRbMotion=true;
-            ROS_INFO_STREAM("left robot motion");
-        }
+//    bool flag_leftRbMotion=false;
+//    bool flag_rightRbMotion=false;
+//    ass_flag_leftRbMotion=false;
+//    ass_flag_rightRbMotion=false;
+//    if(req.robotMotionTraject_list[0].moveGroup_name==MoveGroupList[0].groupName){
+//        if(req.robotMotionTraject_list[0].robot_jointTra.points.size()>0){
+//            pub_robLeft.publish(req.robotMotionTraject_list[0].robot_jointTra);
+//            flag_leftRbMotion=true;
+//            ROS_INFO_STREAM("left robot motion");
+//        }
 
-    }
-    if(req.robotMotionTraject_list[1].moveGroup_name==MoveGroupList[1].groupName){
-        if(req.robotMotionTraject_list[1].robot_jointTra.points.size()>0){
-            pub_robRight.publish(req.robotMotionTraject_list[1].robot_jointTra);
-            ROS_INFO_STREAM("right robot motion");
-            flag_rightRbMotion=true;
-        }
+//    }
+//    if(req.robotMotionTraject_list[1].moveGroup_name==MoveGroupList[1].groupName){
+//        if(req.robotMotionTraject_list[1].robot_jointTra.points.size()>0){
+//            pub_robRight.publish(req.robotMotionTraject_list[1].robot_jointTra);
+//            ROS_INFO_STREAM("right robot motion");
+//            flag_rightRbMotion=true;
+//        }
 
-    }
-    if(!flag_leftRbMotion){
-        ass_flag_leftRbMotion=true;
-    }
-    if(!flag_rightRbMotion){
-        ass_flag_rightRbMotion=true;
-    }
-    //启动监听
-//    ROS_INFO_STREAM("dual motion running0");
-    std::atomic<bool> isstop;
-    isstop = false;
-    int count=0;
-    while(!isstop){
-        //isstop=(MoveGroupList[0].motion==1)&&(MoveGroupList[1].motion==1);
-        //isstop=((MoveGroupList[0].motion_val==1)||!flag_leftRbMotion)&&((MoveGroupList[1].motion_val==1)||!flag_rightRbMotion);
-        //isstop=(ass_flag_leftRbMotion||(!flag_leftRbMotion))&&(ass_flag_rightRbMotion||(!flag_rightRbMotion));
-        isstop=ass_flag_leftRbMotion&&ass_flag_rightRbMotion;
-//        ROS_INFO_STREAM(ass_flag_leftRbMotion<<ass_flag_rightRbMotion);
-        usleep(100);
-        count++;
-        if(count>10000*10){
-            isstop=true;
-            ROS_INFO_STREAM("timer is ok");
-        }
-    }
+//    }
+//    if(!flag_leftRbMotion){
+//        ass_flag_leftRbMotion=true;
+//    }
+//    if(!flag_rightRbMotion){
+//        ass_flag_rightRbMotion=true;
+//    }
+//    //启动监听
+////    ROS_INFO_STREAM("dual motion running0");
+//    std::atomic<bool> isstop;
+//    isstop = false;
+//    int count=0;
+//    while(!isstop){
+//        //isstop=(MoveGroupList[0].motion==1)&&(MoveGroupList[1].motion==1);
+//        //isstop=((MoveGroupList[0].motion_val==1)||!flag_leftRbMotion)&&((MoveGroupList[1].motion_val==1)||!flag_rightRbMotion);
+//        //isstop=(ass_flag_leftRbMotion||(!flag_leftRbMotion))&&(ass_flag_rightRbMotion||(!flag_rightRbMotion));
+//        isstop=ass_flag_leftRbMotion&&ass_flag_rightRbMotion;
+////        ROS_INFO_STREAM(ass_flag_leftRbMotion<<ass_flag_rightRbMotion);
+//        usleep(100);
+//        count++;
+//        if(count>10000*10){
+//            isstop=true;
+//            ROS_INFO_STREAM("timer is ok");
+//        }
+//    }
 
-    ROS_INFO_STREAM("dual motion running1");
-//    sleep(2);
-    isstop= false;
-    while(!isstop){
-        isstop=(MoveGroupList[0].motion_val==0)&&(MoveGroupList[1].motion_val==0);
-        usleep(100);
-    }
-    ROS_INFO_STREAM("dual motion run over");
+//    ROS_INFO_STREAM("dual motion running1");
+////    sleep(2);
+//    isstop= false;
+//    while(!isstop){
+//        isstop=(MoveGroupList[0].motion_val==0)&&(MoveGroupList[1].motion_val==0);
+//        usleep(100);
+//    }
+//    ROS_INFO_STREAM("dual motion run over");
     res.is_success=true;
 
 }
@@ -130,7 +135,15 @@ int motion::trajectPlan(moveit_msgs::RobotTrajectory &tempTraject, MoveGroup& MG
     moveit::planning_interface::MoveItErrorCode status;
     if(sim)
     {
-        status = MG.move_group->plan(plan);
+//        moveit_msgs::DisplayTrajectory
+//        std::vector<double> jointV = MG.move_group->getCurrentJointValues();
+//        moveit_msgs::RobotState rob;
+//        rob.joint_state.position = jointV;
+//        MG.move_group->setStartState(rob);
+//        MG.move_group->setStartStateToCurrentState();
+
+//        status = MG.move_group->plan(plan);
+        pub_rob.publish(plan.trajectory_.joint_trajectory);
     }else{
         status = MG.move_group->execute(plan);
     }
@@ -238,7 +251,7 @@ bool motion::motionBridgeStartCB(hirop_msgs::motionBridgeStart::Request& req, hi
 //        return true;
 //    }
 //
-////    assert(startPos.size() > 0);
+//    assert(startPos.size() > 0);
 //    kinematic_model = move_group->getRobotModel();
 //    kinematic_state = move_group->getCurrentState();
 ////    kinematic_state->setToDefaultValues();
@@ -321,7 +334,9 @@ bool motion::moveLineCB(hirop_msgs::moveLine::Request &req, hirop_msgs::moveLine
     MoveGroupList[robot_num].move_group->setStartStateToCurrentState();
     //1.获取当前位姿
     startPos= MoveGroupList[robot_num].move_group->getCurrentJointValues();
-    cout<<startPos.size()<<endl;
+//    cout<<startPos.size()<<endl;
+
+
     MoveGroupList[robot_num].kinematic_state->setJointGroupPositions(MoveGroupList[robot_num].joint_model_group, startPos);
     const Eigen::Affine3d &end_effector_state = MoveGroupList[robot_num].kinematic_state->getGlobalLinkTransform(MoveGroupList[robot_num].endlinkName);
     geometry_msgs::Pose SPose;//末端位姿
@@ -336,32 +351,9 @@ bool motion::moveLineCB(hirop_msgs::moveLine::Request &req, hirop_msgs::moveLine
     pose.position.z+=req.Cartesian_z;
     ROS_INFO_STREAM(pose);
 
-//    pose.position.x+=0.1;
-//    pose.position.y+=0.1;
-//    pose.position.z+=0.1;
-    //3.运动学逆解得到关节值
-    vector<double > joint_pose;
-    vector<double> vector_pose = MoveGroupList[robot_num].move_group->getCurrentJointValues();
-
-    cout<<"当前关节角[0]"<<vector_pose[0]<<endl;
-    cout<<"当前关节角[1]"<<vector_pose[1]<<endl;
-    cout<<"当前关节角[2]"<<vector_pose[2]<<endl;
-    cout<<"当前关节角[3]"<<vector_pose[3]<<endl;
-    cout<<"当前关节角[4]"<<vector_pose[4]<<endl;
-    cout<<"当前关节角[5]"<<vector_pose[5]<<endl;
-    // robot_inverse(SPose,joint_pose);
-    if(!robot_inverse(MoveGroupList[robot_num],pose,joint_pose)){
-        res.is_success=false;
-        return true;
-    }
-    cout<<"逆解后[0]"<<joint_pose[0]<<endl;
-    cout<<"逆解后[1]"<<joint_pose[1]<<endl;
-    cout<<"逆解后[2]"<<joint_pose[2]<<endl;
-    cout<<"逆解后[3]"<<joint_pose[3]<<endl;
-    cout<<"逆解后[4]"<<joint_pose[4]<<endl;
-    cout<<"逆解后[5]"<<joint_pose[5]<<endl;
-
-    res.is_success=trajectPreparePtp(joint_pose,MoveGroupList[robot_num], false)==0;
+    double radio = 0;
+    res.is_success=trajectPrepareLine(pose, MoveGroupList[robot_num], &radio,req.isSim)==0;
+    res.info = std::to_string(radio);
     return true;
 }
 
@@ -596,4 +588,27 @@ int motion::createTrajectPlan(moveit_msgs::RobotTrajectory &tempTraject,moveit::
     ROS_INFO_STREAM("spline.computeTimeStamps sucess ");
     rt.getRobotTrajectoryMsg(tempTraject);
 
+}
+
+int motion::trajectPrepareLine(const geometry_msgs::Pose &end , MoveGroup& MG, double *radio,bool sim)
+{
+    std::vector<string> jointName = MG.move_group->getJointNames();
+    moveit_msgs::RobotTrajectory tempTraject;
+    tempTraject.joint_trajectory.joint_names = std::move(jointName);
+    tempTraject.joint_trajectory.points.clear();
+
+//    geometry_msgs::PoseStamped currentPose = MG.move_group->getCurrentPose();
+    vector<geometry_msgs::Pose> LGroup;
+//    LGroup.push_back(currentPose.pose);
+
+
+    LGroup.push_back(end);
+    MG.move_group->setMaxVelocityScalingFactor(1);
+    *radio = MG.move_group->computeCartesianPath(LGroup, 0.04, 0., tempTraject, false);
+    if( *radio < 0.6)
+    {
+        return -2;
+    }
+
+    return trajectPlan(tempTraject, MG,sim);
 }

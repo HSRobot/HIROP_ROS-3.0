@@ -74,15 +74,15 @@ private:
     ros::NodeHandle* Node;
     vector<double> startPos ;
     vector<MoveGroup> MoveGroupList;
-
+    string robot_group, effect_link;
     bool ass_flag_leftRbMotion=false;
     bool ass_flag_rightRbMotion=false;
 
 
-    ros::Publisher pub_robLeft;
-    ros::Publisher pub_robRight;
+    ros::Publisher pub_rob;
+//    ros::Publisher pub_robRight;
     ros::Subscriber rb0_robotstatus_subscriber;
-    ros::Subscriber rb1_robotstatus_subscriber;
+//    ros::Subscriber rb1_robotstatus_subscriber;
 
 
     ros::ServiceServer dualRobMotion_server;//双臂运动服务
@@ -97,9 +97,11 @@ private:
     bool dualRobMotion(hirop_msgs::dualRbtraject::Request& req, hirop_msgs::dualRbtraject::Response& res);
 
     void callback_rob0Status_subscriber(const industrial_msgs::RobotStatus::ConstPtr robot_status);
+
     void callback_rob1Status_subscriber(const industrial_msgs::RobotStatus::ConstPtr robot_status);
 
     bool motionBridgeStartCB(hirop_msgs::motionBridgeStart::Request& req, hirop_msgs::motionBridgeStart::Response& res);
+
     /***
      *单点运动
      * @param req
@@ -142,6 +144,9 @@ private:
 
     int createTrajectPlan(moveit_msgs::RobotTrajectory &tempTraject,moveit::planning_interface::MoveGroupInterface & ptr, const string & groupName);
 
+
+private:
+    int trajectPrepareLine(const geometry_msgs::Pose &end , MoveGroup& MG, double *radio,bool sim = false);
 };
 
 
