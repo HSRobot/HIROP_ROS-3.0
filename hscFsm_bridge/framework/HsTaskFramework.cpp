@@ -54,9 +54,6 @@ bool HsTaskFramework::registerTaskList()
 
 void HsTaskFramework::waitRecall()
 {
-//    if(notitySem ==nullptr)
-//        notitySem = std::make_shared<semaphore>(taskName);
-
     notitySem->wait();
 }
 
@@ -67,8 +64,6 @@ string HsTaskFramework::getTaskName()
 
 void HsTaskFramework::debugTaskList()
 {
-//    ostream os;
-//    os << fsmStack->debug(os);
     std::cout <<fsmStack.get();
 }
 
@@ -96,7 +91,6 @@ bool HsTaskFramework::setCommandProxy(const CmdInputData &cmd)
 
 void HsTaskFramework::notityRecall()
 {
-//    currentState = getTaskState();
     notitySem->signal();
 }
 
@@ -116,14 +110,13 @@ State HsTaskFramework::getTaskState()
      current.Type = currentState.Type;
      current.status = currentState.status;
      current.meassage = currentState.meassage;
-     //current.behevior = fsmStack->get_trigger();
      current.behevior = currentState.behevior;
      return current;
 }
 
 void HsTaskFramework::setTaskState(HsFsm::state state)
 {
-    fsmStack->set(state);
+    threadpool->enqueue(&fsm::stack::set, fsmStack.get(), state );
 }
 
 void HsTaskFramework::setInitState()
@@ -141,9 +134,6 @@ void HsTaskFramework::setExitingAction()
 
 void HsTaskFramework::setRecallState(State& state)
 {
-//    typeCode = state.Type;
-//    taskRunStatus = state.status;
-//    recallMessage = state.meassage;
     this->currentState = state;
 }
 

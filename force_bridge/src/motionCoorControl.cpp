@@ -4,9 +4,6 @@
 
 using namespace std;
 
-
-
-
 //服务回调函数 //设置阻抗随动方向
 bool motionCoorSetCB(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res){
     res.success=true;
@@ -18,9 +15,6 @@ bool motionCoorShutDownCB(std_srvs::SetBool::Request &req, std_srvs::SetBool::Re
     res.success=true;
     return true;
 }
-
-
-
 
 
 int main(int argc, char *argv[])

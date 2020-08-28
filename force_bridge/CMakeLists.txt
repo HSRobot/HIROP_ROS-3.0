@@ -11,8 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rosmsg
   rospy
-hirop_msgs
-
+  hirop_msgs
+  realtime_tools
   eigen_conversions
   std_msgs
   moveit_core
