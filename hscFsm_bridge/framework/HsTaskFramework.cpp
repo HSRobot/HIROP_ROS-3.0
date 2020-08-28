@@ -116,7 +116,8 @@ State HsTaskFramework::getTaskState()
      current.Type = currentState.Type;
      current.status = currentState.status;
      current.meassage = currentState.meassage;
-     current.behevior = fsmStack->get_trigger();
+     //current.behevior = fsmStack->get_trigger();
+     current.behevior = currentState.behevior;
      return current;
 }
 
