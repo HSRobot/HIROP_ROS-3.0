@@ -1,0 +1,64 @@
+joint_constraints:
+  switch: true
+  config: 
+    -
+      joint_name: joint_4
+      position: 0
+      tolerance_above: 1.5
+      tolerance_below: 1.5
+      weight: 1
+position_constraints:
+  switch: true
+  config:
+    -
+      header:
+        frame_id: world
+      link_name: link_6
+      target_point_offset:
+        x: 0.01
+        y: 0.01
+        z: 0.01
+      constraint_region:
+        primitives:
+          BOX: 1
+          SPHERE: 2
+          CYLINDER: 3
+          CONE: 4
+          BOX_X: 0
+          BOX_Y: 1
+          BOX_Z: 2
+          SPHERE_RADIUS: 0
+          CYLINDER_HEIGHT: 0
+          CYLINDER_RADIUS: 1
+          CONE_HEIGHT: 0
+          CONE_RADIUS: 1
+          type: 1
+          dimensions: [1, 1, 1]
+        primitive_poses:
+          position:
+            x: 1
+            y: 1
+            z: 1
+          orientation:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+      weight: 1
+orientation_constraints:
+  switch: true
+  config:
+    -
+      header:
+        frame_id: world
+      orientation:
+        x: 0
+        y: 0
+        z: 0
+        w: 1
+      link_name: link_6
+      absolute_x_axis_tolerance: 0.1
+      absolute_y_axis_tolerance: 0.1
+      absolute_z_axis_tolerance: 0.1
+      weight: 1
+

@@ -6,7 +6,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   trajectory_msgs
-shape_msgs
+  shape_msgs
+  moveit_msgs
 )
 
 add_message_files(
@@ -17,7 +18,7 @@ add_message_files(
 	joints_angle.msg  
 	robotMotionGroup.msg  
 	robotMotionTraject.msg
-	loadJointData.msg
+	JointData.msg
 	shakeHandStatus.msg
 	taskCmdRet.msg
 	FixedAngle.msg
@@ -105,6 +106,12 @@ updatePCParm.srv
 cancelCloudOrder.srv
 getCloudOrder.srv
 finishCloudOrder.srv
+
+addJointPose.srv
+addPose.srv
+getTrajectory.srv
+incrementAngle.srv
+setFromIK.srv
 )
 
 generate_messages(
@@ -112,7 +119,8 @@ generate_messages(
   std_msgs
   geometry_msgs
   trajectory_msgs
-	shape_msgs
+  shape_msgs
+  moveit_msgs
 )
 
 catkin_package(

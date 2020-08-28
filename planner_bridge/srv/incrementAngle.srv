@@ -1,0 +1,4 @@
+string[] jointIndex
+float64[] incrementAngle
+---
+int8 result

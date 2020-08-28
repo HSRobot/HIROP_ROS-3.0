@@ -1,4 +1,4 @@
 string uri
 string name
 ---
-loadJointData[] joints
+JointData[] joints
