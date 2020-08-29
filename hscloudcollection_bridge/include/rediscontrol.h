@@ -8,7 +8,7 @@
 #include <hiredis/hiredis.h>
 #include <string>
 #include <queue>
-
+//"192.168.100.232"
 #define HSREDISCHANNEL "publish XZJQR_DATAARR %s"
 using namespace std;
 class redisControl
@@ -24,13 +24,13 @@ public:
      * @param port    端口号
      * @return
      */
-    int connect(const std::string &ip, int port);
+    int connect(const std::string &ip = "127.0.0.1", int port = 6379);
 
     /**
      * @brief setpublishForceData
      * @param data
      */
-    void setpublishForceData( std::vector<double> &data);
+    void setpublishForceData(std::vector<double> &data);
 
     /**
      * @brief publish 服务器上传
@@ -43,19 +43,31 @@ public:
      * @brief setJsonkey
      * @param keys
      */
-    void setJsonkey(const std::vector<string> &keys);
+    bool setJsonkey(const std::vector<string> &keys);
 
     /**
      * @brief getJsonKey
      */
     int getJsonKey() const;
+
+    /**
+     * @brief isConnected
+     * @return
+     */
+    bool isConnected() const;
+
+    /**
+     * @brief disConnect
+     */
+    void disConnect();
 private:
-    void transfromJson(const std::vector<string> &keys, const std::vector<double> &val, string &out);
+    void transfromJson(const std::vector<string> &keys, std::vector<double> &&val, string &out);
     double getTime();
     redisContext* redis;
     std::vector<std::string> keys;
     std::vector<double> val;
     std::queue<std::string> out;
+    bool isConnect;
 };
 
 #endif // REDISCONTROL_H

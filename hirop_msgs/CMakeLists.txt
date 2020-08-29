@@ -10,108 +10,32 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_msgs
 )
 
+file(GLOB MSG_LIST msg/*.msg)
+set(subMsgList "")
+foreach(children ${MSG_LIST})
+      file(RELATIVE_PATH childrenRmTxtRel ${CMAKE_CURRENT_SOURCE_DIR}/srv ${children}) # 获取相对路径
+      list(APPEND subMsgList ${childrenRmTxtRel})
+endforeach()
+
 add_message_files(
 	FILES
-	ObjectArray.msg
-	ObjectInfo.msg
-	GeneralPos.msg
-	joints_angle.msg  
-	robotMotionGroup.msg  
-	robotMotionTraject.msg
-	JointData.msg
-	shakeHandStatus.msg
-	taskCmdRet.msg
-	FixedAngle.msg
-	Pose.msg
-	orderDesc.msg
-
+	${subMsgList}
 )
+
+file(GLOB SRV_LIST srv/*.srv)
+file(GLOB hsclouddata_LIST srv/hsclouddata/*.srv)
+list(APPEND SRV_LIST ${hsclouddata_LIST})
+set(subSrvList "")
+# string(REPLACE "/CMakeLists.txt" "/" childrenRmTxt ${children})
+foreach(children ${SRV_LIST})
+      file(RELATIVE_PATH childrenRmTxtRel ${CMAKE_CURRENT_SOURCE_DIR}/srv ${children}) # 获取相对路径
+      list(APPEND subSrvList ${childrenRmTxtRel})
+endforeach()
 
 add_service_files(
   FILES
-  Look.srv
-  SavePCL.srv
-  LoadPCL.srv
-  CleanPCL.srv
-  StartListen.srv
-  StopListen.srv
-  GetData.srv
-  SaveData.srv
-  detection.srv
-  listDetector.srv
-  listObject.srv
-  train.srv
-  listGenerator.srv
-  MoveToName.srv
-  MoveToPos.srv
-  Pick.srv
-  PickPlaceStop.srv
-  Place.srv
-  RemoveObject.srv
-  ShowObject.srv 
-  listActuator.srv
-  SetGenActuator.srv
-  moveTo.srv
-  setOpMode.srv
-  setVord.srv
-  startJog.srv
-  stopJog.srv
-  setIODout.srv
-  setWorkFrame.srv
-  connectGripper.srv
-  disConnectGripper.srv
-  openGripper.srv
-  closeGripper.srv
-  listGripper.srv
-  SetGripper.srv
-  StopGripper.srv
-  UploadScene.srv
-  robotConn.srv
-  robotError.srv
-  getForce.srv
-  moveSeqIndex.srv
-  getOnRobotForce.srv
-  setOnRobotForce.srv
-  setStopProject.srv
-  setStartUpProject.srv
-motionBridgeStart.srv
-moveLine.srv
-moveSigleAixs.srv
-moveToMultiPose.srv
-moveToSiglePose.srv
-shakeHandSet.srv
-force_algorithmChange.srv
-dualRbtraject.srv      
-pickPlaceData.srv
-setVelocityAccelerated.srv
-
-loadPoseData.srv  
-saveJointData.srv
-loadJointsData.srv  
-saveDataEnd.srv   
-savePoseData.srv
-setRobotType.srv
-taskInputCmd.srv
-
-ClearScene.srv
-LookPointCloud.srv
-PubMesh.srv
-PubObject.srv
-removeObject.srv
-setVelocityAccelerated.srv
-updateParam.srv
-UpdatePCL.srv
-updatePCParm.srv
-
-cancelCloudOrder.srv
-getCloudOrder.srv
-finishCloudOrder.srv
-
-addJointPose.srv
-addPose.srv
-getTrajectory.srv
-incrementAngle.srv
-setFromIK.srv
+  ${subSrvList}
+ # ${hsclouddata_SRV_LIST}
 )
 
 generate_messages(
