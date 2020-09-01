@@ -180,16 +180,16 @@ namespace fsm
             }
         }
 
-        void set( const char* state ) {
-            std::cout << "current change to : "<<state<<std::endl;
-            fsm::state stateStr(state);
-            // 状态转换的时候 如果存在转换的行为 那么会调用转换的行为 否则直接zhuanhaunu
-            if( deque.size() ) {
-                replace( deque.back(), stateStr );
-            } else {
-                push(stateStr);
-            }
-        }
+//        void set( const char* state ) {
+//            std::cout << "current change to : "<<state<<std::endl;
+//            fsm::state stateStr(state);
+//            // 状态转换的时候 如果存在转换的行为 那么会调用转换的行为 否则直接zhuanhaunu
+//            if( deque.size() ) {
+//                replace( deque.back(), stateStr );
+//            } else {
+//                push(stateStr);
+//            }
+//        }
 
         // number of children (stack)
         size_t size() const {

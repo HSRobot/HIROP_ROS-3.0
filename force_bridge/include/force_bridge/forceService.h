@@ -26,6 +26,7 @@
 #include "industrial_msgs/RobotStatus.h"
 #include "hirop_msgs/force_algorithmChange.h"
 #include <realtime_tools/realtime_publisher.h>
+#include <boost/asio.hpp>
 using namespace std;
 
 #define PUBPOSE_HZ 40
@@ -85,6 +86,9 @@ private:
     ros::Subscriber   force_sub, robot_status_sub;
     typedef boost::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::JointState> > RtPublisherPtr;
     RtPublisherPtr joint_state_pub; //joint listen
+
+    boost::asio::io_service io_service;
+    boost::asio::deadline_timer *timer;
 public:
 
     /***

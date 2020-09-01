@@ -8,6 +8,8 @@ HsFsm::State HsTaskFramework::currentState;
 HsTaskFramework::HsTaskFramework()
 {
     fsmStack = std::make_shared<fsm::stack>();
+    threadpool = std::make_shared<ThreadPool>(4);
+
 }
 
 HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFramework> &fsm):typeCode(0),taskRunStatus(false)
@@ -17,7 +19,7 @@ HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFram
     fsmStack = fsm->fsmStack;
     notitySem = std::make_shared<semaphore>(fsm->taskName);
 
-    threadpool = std::make_shared<ThreadPool>(4);
+    threadpool = fsm->threadpool;
 }
 
 void HsTaskFramework::init()
@@ -116,7 +118,8 @@ State HsTaskFramework::getTaskState()
 
 void HsTaskFramework::setTaskState(HsFsm::state state)
 {
-    threadpool->enqueue(&fsm::stack::set, fsmStack.get(), state );
+     threadpool->enqueue(&fsm::stack::set, fsmStack.get(), std::string(state));
+    // fsmStack->set(state);
 }
 
 void HsTaskFramework::setInitState()

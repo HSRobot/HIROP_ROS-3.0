@@ -2,7 +2,6 @@ string moveGroup_name
 float32 Cartesian_x
 float32 Cartesian_y
 float32 Cartesian_z
-bool isSim
 ---
 bool is_success
 string info

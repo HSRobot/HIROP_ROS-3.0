@@ -226,7 +226,7 @@ int Planner::AdjustTrajectory(moveit_msgs::RobotTrajectory& tra)
     robot_trajectory::RobotTrajectory rt(move_group->getRobotModel(), move_group->getName());
     rt.setRobotTrajectoryMsg(*(move_group->getCurrentState()), tra);
     trajectory_processing::IterativeParabolicTimeParameterization iptp;
-    iptp.computeTimeStamps(rt);
+    iptp.computeTimeStamps(rt, plannerConfig.velocityScalingFactor, plannerConfig.accelerationScalingFactor);
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
     // targetTrajectory.joint_trajectory.points.clear();
     rt.getRobotTrajectoryMsg(targetTrajectory);

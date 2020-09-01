@@ -1,4 +1,6 @@
 #include "forceService.h"
+#include <chrono>
+#include <thread>
 forceService::forceService(ros::NodeHandle* n):mode(Impenderr) {
     Node = n;
     force_plugin = new forcePluginAggre();
@@ -100,10 +102,14 @@ bool forceService::StartImpedenceCtl() {
 
 void forceService::impdenceErrThreadRun()
 {
+//    static auto start = std::chrono::system_clock::now();
+    auto nextTime = std::chrono::system_clock::now();
+
     while(ros::ok()&&(!is_stop)&&(!ros::isShuttingDown())&&(robot_servo_status))
     {
-        auto start = boost::chrono::system_clock::now();
+        auto duration_in_ms = std::chrono::duration_cast<std::chrono::milliseconds>(nextTime.time_since_epoch());
 
+        cout<<"impdenceErrThreadRun: "<<duration_in_ms.count()<<endl;
         vector<double > copy_currentForce=currentForce;
         assert(copy_currentForce.size() >0 );
         vector<double > out_dealForce;
@@ -115,12 +121,15 @@ void forceService::impdenceErrThreadRun()
             continue;
 //            return -1;
         }
+//        outPose.position=MG.move_group->getCurrentPose(MG.endlinkName).pose.position;
         //发布位姿
-        Pose_state_pub.publish(outPose);
+//        Pose_state_pub.publish(outPose);
         //执行运动
         publishPose(outJoint);
-        boost::this_thread::sleep_until( start +boost::chrono::milliseconds(PUBPOSE_HZ));
-        ROS_INFO_STREAM("<---------------------------------------------------->");
+        nextTime = nextTime +std::chrono::milliseconds(PUBPOSE_HZ);
+        cout<<"<---------------------------------------------------->"<<endl;
+        std:this_thread::sleep_until(nextTime );
+//        start = std::chrono::system_clock::now();
     }
     is_running= false;
 
@@ -283,7 +292,6 @@ void forceService::publishOnceForRealRb(std::vector<double> &startPos) {
 
 void forceService::publishPose(std::vector<double> &joint_Pose) {
     sensor_msgs::JointState compute_robot_state;
-    compute_robot_state.header.stamp = ros::Time::now();
     compute_robot_state.name.resize(6);
     compute_robot_state.name = MG.joint_names;
 
@@ -308,8 +316,16 @@ void forceService::publishPose(std::vector<double> &joint_Pose) {
     //     cout<<"轴5非安全点"<<endl;
     //     compute_robot_state.position[4]=(-60.0/180.0)*M_PI;
     // }
-    joint_state_pub->msg_ = compute_robot_state;
-    joint_state_pub->unlockAndPublish();
+    compute_robot_state.header.stamp = ros::Time::now();
+
+//    while(true)
+//    {
+            joint_state_pub->msg_ = compute_robot_state;
+            joint_state_pub->unlockAndPublish();
+//            break;
+//        }
+//    }
+
     
 
 }
@@ -347,11 +363,12 @@ int forceService::computeImpedence(std::vector<double> &force, std::vector<doubl
     int i = force_plugin->compute();
     force_plugin->getResult(Xa);
     //位移量控制
-//    if(Xa[0]>=yamlPara_MaxVel_x){
-//        Xa[0]=yamlPara_MaxVel_x;
-//    }else if(Xa[0]<= -1*yamlPara_MaxVel_x){
-//        Xa[0]=-1*yamlPara_MaxVel_x;
-//    }
+    const double protectXValue = -0.04;
+    if(Xa[0]>=yamlPara_MaxVel_x){
+        Xa[0]=yamlPara_MaxVel_x;
+    }else if(Xa[0]<= protectXValue){
+        Xa[0]= protectXValue;
+    }
 
 //    if(Xa[1]>=yamlPara_MaxVel_y){
 //        Xa[1]=yamlPara_MaxVel_y;
@@ -369,12 +386,12 @@ int forceService::computeImpedence(std::vector<double> &force, std::vector<doubl
     cout<<"计算得偏移量y_offset: "<<Xa[1]<<endl;
     cout<<"计算得偏移量z_offset: "<<Xa[2]<<endl;
 
-    double diff=0;
+//    double diff=0;
     std::vector<double> joint_values;
-    vector<double > curJoint;
-    geometry_msgs::Pose computePose;
-
+//    vector<double > curJoint;
+    static geometry_msgs::Pose computePose;
     //3.位姿补偿计算
+
     computePose = current_Pose;
     computePose.position.x+=Xa[0];
     computePose.position.y+=Xa[1];
@@ -389,16 +406,6 @@ int forceService::computeImpedence(std::vector<double> &force, std::vector<doubl
     // 返回计算后的关节角
     MG.kinematic_state->copyJointGroupPositions(MG.joint_model_group, joint_values);
     //关节角偏移量
-    // curJoint =MG.move_group->getCurrentJointValues();
-    // for (size_t i = 0; i < 6; i++)
-    // {
-    //     diff=(joint_values[i]-curJoint[i])*180/M_PI;
-    //     cout<<"计算偏移量joint"<<i<<"偏差角度值: "<<setprecision(2)<<diff<<endl;
-    //     if((diff<-0.6)||(diff>0.6))
-    //     {
-    //         flag=true;
-    //     }
-    // }
 
     outJoint =  std::move(joint_values);
     return 0;
