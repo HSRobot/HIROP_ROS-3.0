@@ -1,14 +1,14 @@
 #include <HsFsmBridge.h>
-#include <pickplacetask.h>
+#include "VoiceCtlRobTask.h"
 #include <future>
 #include <hirop_msgs/taskCmdRet.h>
 using namespace HsFsm;
 
 HsFsmBridge::HsFsmBridge(ros::NodeHandle &node):nh(node),loopStop(false),frameExist(false),running(false)
 {
-    nh.param("TaskServer",cmdServerName, std::string("TaskServerCmd"));
-    nh.param("TaskName", taskName, std::string("pickplace"));
-    nh.param("taskResTopName", taskResTopName, std::string("pickplacePub"));
+    nh.param("TaskServer",cmdServerName, std::string("VoiceCtlRob_TaskServerCmd"));
+    nh.param("TaskName", taskName, std::string("VoiceCtlRob"));
+    nh.param("taskResTopName", taskResTopName, std::string("VoiceCtlRob_state"));
 
     sem = std::make_shared<semaphore>("TaskServer");
 
@@ -187,7 +187,7 @@ void HsFsmBridge::loadTask()
 {
 //    taskName;
 //    framework = std::make_shared<HsFsm::PickPlaceTask>("pickplace");
-    std::shared_ptr<HsTaskFramework> ptr = std::make_shared<HsFsm::PickPlaceTask>("pickplace");
+    std::shared_ptr<HsTaskFramework> ptr = std::make_shared<HsFsm::VoiceCtlRobTask>("VoiceCtlRob");
     framework = std::make_shared<HsFsm::HsTaskFramework>(nh,ptr);
     std::cout <<framework->getTaskName()<<std::endl;
     frameExist = true;

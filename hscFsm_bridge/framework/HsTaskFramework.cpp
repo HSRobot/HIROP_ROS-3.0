@@ -8,6 +8,8 @@ HsFsm::State HsTaskFramework::currentState;
 HsTaskFramework::HsTaskFramework()
 {
     fsmStack = std::make_shared<fsm::stack>();
+    threadpool = std::make_shared<ThreadPool>(4);
+
 }
 
 HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFramework> &fsm):typeCode(0),taskRunStatus(false)
@@ -17,7 +19,7 @@ HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFram
     fsmStack = fsm->fsmStack;
     notitySem = std::make_shared<semaphore>(fsm->taskName);
 
-    threadpool = std::make_shared<ThreadPool>(4);
+    threadpool = fsm->threadpool;
 }
 
 void HsTaskFramework::init()
@@ -54,9 +56,6 @@ bool HsTaskFramework::registerTaskList()
 
 void HsTaskFramework::waitRecall()
 {
-//    if(notitySem ==nullptr)
-//        notitySem = std::make_shared<semaphore>(taskName);
-
     notitySem->wait();
 }
 
@@ -67,8 +66,6 @@ string HsTaskFramework::getTaskName()
 
 void HsTaskFramework::debugTaskList()
 {
-//    ostream os;
-//    os << fsmStack->debug(os);
     std::cout <<fsmStack.get();
 }
 
@@ -96,7 +93,6 @@ bool HsTaskFramework::setCommandProxy(const CmdInputData &cmd)
 
 void HsTaskFramework::notityRecall()
 {
-//    currentState = getTaskState();
     notitySem->signal();
 }
 
@@ -116,13 +112,14 @@ State HsTaskFramework::getTaskState()
      current.Type = currentState.Type;
      current.status = currentState.status;
      current.meassage = currentState.meassage;
-     current.behevior = fsmStack->get_trigger();
+     current.behevior = currentState.behevior;
      return current;
 }
 
 void HsTaskFramework::setTaskState(HsFsm::state state)
 {
-    fsmStack->set(state);
+     threadpool->enqueue(&fsm::stack::set, fsmStack.get(), std::string(state));
+    // fsmStack->set(state);
 }
 
 void HsTaskFramework::setInitState()
@@ -140,9 +137,6 @@ void HsTaskFramework::setExitingAction()
 
 void HsTaskFramework::setRecallState(State& state)
 {
-//    typeCode = state.Type;
-//    taskRunStatus = state.status;
-//    recallMessage = state.meassage;
     this->currentState = state;
 }
 

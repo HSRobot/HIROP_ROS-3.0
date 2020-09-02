@@ -32,6 +32,5 @@ rosservice call /trajectory_planner/cartesianPlanner "pose:
       z: 0.0
       w: 1.0
 type:
-- 1
 - 0" 
 

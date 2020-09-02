@@ -27,6 +27,8 @@ shakeHand sh_data; //controller para
 int step;//0:等待握手检测，1:进行握手检测
 bool shakeHand_begin=false;
 bool shakeHand_end= false;
+double diff=0.0;
+bool initforce=false;
 ros::Publisher shakeHandStatus_pub;//发布握手状态
 
 
@@ -62,6 +64,7 @@ double cul_forceDiff(){
     for (int i = 0; i <3; ++i) {
         tmp_diffForce+=pow((fabs(sh_data.before_force[i]-sh_data.currentForce[i])),2);
     }
+    cout<<"力矩差: "<<tmp_diffForce<<endl;
     return tmp_diffForce;
 }
 
@@ -74,7 +77,8 @@ void calculate_shakeHand(){
 //    ROS_INFO_STREAM("<------------  shakeStatus is "<< sh_data.shakeStatus<< " sh_data.countTime is "<<sh_data.countTime);
 
     // no force control
-    if( cul_forceDiff()< 0.003){
+    if( cul_forceDiff()< 20){
+        cout<<"检测到没有力矩"<<endl;
         sh_data.timer_noMove++;
     }else{
         sh_data.timer_noMove = 0;
@@ -98,11 +102,12 @@ void calculate_shakeHand(){
     if( sh_data.shakeCount>=sh_data.countTime){
         ROS_INFO_STREAM("<------------  waitForExit "<<"-----timer_noMove "<<sh_data.timer_noMove);
         //等待没有力矩感应
-        if((sh_data.currentForce[0]<0.1)&&(sh_data.currentForce[1]<0.1)&&(sh_data.currentForce[2]<0.1)){
-            sh_data.timer_noMove++;//计时
-        } else{
-            sh_data.timer_noMove=0;
-        }
+//        if((sh_data.currentForce[0]<0.1)&&(sh_data.currentForce[1]<0.1)&&(sh_data.currentForce[2]<0.1)){
+//            sh_data.timer_noMove++;//计时
+//        } else{
+//            sh_data.timer_noMove=0;
+//        }
+
     }
     //发布握手完成信号（超时）或（达到晃动次数要求与无力矩感应）
     if(sh_data.timer_noMove > 500 ||((sh_data.timer_noMove > 50)&&(sh_data.shakeCount>=sh_data.countTime))){
@@ -130,6 +135,13 @@ void forceSensorCB(const geometry_msgs::Wrench_<allocator<void>>::ConstPtr &msg)
     sh_data.currentForce[0]=msg->force.x;
     sh_data.currentForce[1]=msg->force.y;
     sh_data.currentForce[2]=msg->force.z;
+    if(!initforce){
+        initforce=true;
+        sh_data.before_force[0]=sh_data.currentForce[0];
+        sh_data.before_force[1]=sh_data.currentForce[1];
+        sh_data.before_force[2]=sh_data.currentForce[2];
+    }
+
 }
 
 void robotPose_XYZ_CB(const geometry_msgs::Pose::ConstPtr &msg){
@@ -142,6 +154,7 @@ void robotPose_XYZ_CB(const geometry_msgs::Pose::ConstPtr &msg){
         sh_data.initRobotPose[2]=msg->position.z;
         sh_data.recordInitPose= true;
     }
+
 }
 
 

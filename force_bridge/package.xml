@@ -59,7 +59,9 @@
   <exec_depend>rosmsg</exec_depend>
   <exec_depend>rospy</exec_depend>
 
-
+  <exec_depend>realtime_tools</exec_depend>
+  <build_export_depend>realtime_tools</build_export_depend>
+  <build_depend>realtime_tools</build_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->

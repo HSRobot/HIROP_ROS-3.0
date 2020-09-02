@@ -77,12 +77,15 @@ private:
 
     bool ass_flag_leftRbMotion=false;
     bool ass_flag_rightRbMotion=false;
+    bool ass_flag_RbMotion=false;
 
 
     ros::Publisher pub_robLeft;
     ros::Publisher pub_robRight;
+    ros::Publisher pub_sigrob;
     ros::Subscriber rb0_robotstatus_subscriber;
     ros::Subscriber rb1_robotstatus_subscriber;
+    ros::Subscriber robotstatus_subscriber;
 
 
     ros::ServiceServer dualRobMotion_server;//双臂运动服务
@@ -91,13 +94,19 @@ private:
     ros::ServiceServer moveToMultiPose_server;//多点运动服务
     ros::ServiceServer moveLine_server;       //直线运动服务
     ros::ServiceServer SigleAixs_server;      //单轴运动服务
+    ros::ServiceServer sigRobMotion_server;
 
     ros::ServiceServer test_server;
 
+    bool trajectPlainExec(moveit_msgs::RobotTrajectory &tempTraject, MoveGroup& MG);
+
+
     bool dualRobMotion(hirop_msgs::dualRbtraject::Request& req, hirop_msgs::dualRbtraject::Response& res);
+    bool sigRobMotion(hirop_msgs::dualRbtraject::Request& req, hirop_msgs::dualRbtraject::Response& res);
 
     void callback_rob0Status_subscriber(const industrial_msgs::RobotStatus::ConstPtr robot_status);
     void callback_rob1Status_subscriber(const industrial_msgs::RobotStatus::ConstPtr robot_status);
+    void callback_robStatus_subscriber(const industrial_msgs::RobotStatus::ConstPtr robot_status);
 
     bool motionBridgeStartCB(hirop_msgs::motionBridgeStart::Request& req, hirop_msgs::motionBridgeStart::Response& res);
     /***

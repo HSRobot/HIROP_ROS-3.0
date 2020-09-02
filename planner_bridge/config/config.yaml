@@ -1,5 +1,5 @@
-velocityScalingFactor: 1
-accelerationScalingFactor: 1
+velocityScalingFactor: 0.1
+accelerationScalingFactor: 0.1
 planningTime: 1
 plannerID: NULL
 positionTolerance: 0.0001

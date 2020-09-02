@@ -1,16 +1,20 @@
 #include "motion.h"
 
 motion::motion(ros::NodeHandle* node):Node(node){
-    generateMoveGroup("arm0","link6");
-    generateMoveGroup("arm1","link6");
+    generateMoveGroup("arm","link6");
+//    generateMoveGroup("arm1","link6")  ;
     ass_flag_leftRbMotion=false;
     ass_flag_rightRbMotion=false;
+    ass_flag_RbMotion=false;
 
     pub_robLeft  =Node->advertise<trajectory_msgs::JointTrajectory>("/UR51/joint_path_command",1);
     pub_robRight =Node->advertise<trajectory_msgs::JointTrajectory>("/UR52/joint_path_command",1);
+    pub_sigrob =Node->advertise<trajectory_msgs::JointTrajectory>("/joint_path_command",1);
 
     rb0_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/UR51/robot_status",1,boost::bind(&motion::callback_rob0Status_subscriber,this,_1));
     rb1_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/UR52/robot_status",1,boost::bind(&motion::callback_rob1Status_subscriber,this,_1));
+
+    robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/robot_status",1,boost::bind(&motion::callback_robStatus_subscriber,this,_1));
 
     dualRobMotion_server=Node->advertiseService("motion_bridge/dualRobMotion_JointTraject", &motion::dualRobMotion, this);
     motionBridgeStart_server=Node->advertiseService("motion_bridge/motionBridgeStart", &motion::motionBridgeStartCB, this);
@@ -19,6 +23,8 @@ motion::motion(ros::NodeHandle* node):Node(node){
     moveToMultiPose_server=Node->advertiseService("motion_bridge/moveToMultiPose", &motion::moveToMultiPoseCB, this);
     moveLine_server=Node->advertiseService("motion_bridge/moveLine", &motion::moveLineCB, this);
     SigleAixs_server=Node->advertiseService("motion_bridge/SigleAixs", &motion::moveSigleAixsCB, this);
+    sigRobMotion_server=Node->advertiseService("motion_bridge/sigRobMotion_JointTraject", &motion::sigRobMotion, this);
+
 }
 
 void motion::generateMoveGroup(string groupName,string endLinkName){
@@ -110,6 +116,43 @@ bool motion::dualRobMotion(hirop_msgs::dualRbtraject::Request& req, hirop_msgs::
 
 }
 
+bool motion::sigRobMotion(hirop_msgs::dualRbtraject::Request &req, hirop_msgs::dualRbtraject::Response &res) {
+    std::vector<string> jointName = MoveGroupList[0].move_group->getJointNames();
+    moveit_msgs::RobotTrajectory tempTraject;
+    tempTraject.joint_trajectory.joint_names = std::move(jointName);
+    tempTraject.joint_trajectory.points.clear();
+    tempTraject.joint_trajectory=req.robotMotionTraject_list[0].robot_jointTra;
+    res.is_success = trajectPlainExec(tempTraject, MoveGroupList[0]);
+
+    // bool RbMotion=false;
+    // ass_flag_RbMotion= false;
+    // ROS_INFO_STREAM(req.robotMotionTraject_list[0].robot_jointTra.points.size());
+    // pub_sigrob.publish(req.robotMotionTraject_list[0].robot_jointTra);
+
+    // //启动监听
+    // int count=0;
+    // while(!ass_flag_RbMotion){
+    //     usleep(100);
+    //     count++;
+    //     if(count>10000*10){
+    //         ass_flag_RbMotion=true;
+    //         ROS_INFO_STREAM("timer is ok");
+    //     }
+    // }
+
+    // ROS_INFO_STREAM(" motion running");
+    // bool isstop= false;
+    // isstop= false;
+    // while(!isstop){
+    //     isstop=MoveGroupList[0].motion_val==0;
+    //     usleep(100);
+    // }
+    ROS_INFO_STREAM("motion run over");
+
+
+    return true;
+}
+
 int motion::trajectPlan(moveit_msgs::RobotTrajectory &tempTraject, MoveGroup& MG,bool sim)
 {
     robot_trajectory::RobotTrajectory rt(MG.move_group->getCurrentState()->getRobotModel(), MG.groupName);
@@ -125,7 +168,7 @@ int motion::trajectPlan(moveit_msgs::RobotTrajectory &tempTraject, MoveGroup& MG
     ROS_INFO_STREAM("spline.computeTimeStamps sucess ");
     moveit::planning_interface::MoveGroupInterface::Plan  plan;
 
-    // plan.trajectory_ = tempTraject;
+     plan.trajectory_ = tempTraject;
     rt.getRobotTrajectoryMsg(plan.trajectory_);
     moveit::planning_interface::MoveItErrorCode status;
     if(sim)
@@ -224,6 +267,40 @@ bool motion::robot_inverse(MoveGroup& MG,geometry_msgs::Pose& pose,vector<double
     // 返回计算后的关节角
     std::vector<double> joint_values;
     MG.kinematic_state->copyJointGroupPositions(MG.joint_model_group, output);
+    return true;
+}
+
+bool motion::trajectPlainExec(moveit_msgs::RobotTrajectory &tempTraject, MoveGroup &MG)
+{
+//    robot_trajectory::RobotTrajectory rt(MG.move_group->getCurrentState()->getRobotModel(), MG.groupName);
+
+    std::vector<double> jointValue = MG.move_group->getCurrentJointValues();
+    moveit_msgs::RobotState rt;
+    rt.joint_state.position = jointValue;
+    MG.move_group->setStartState(rt);
+    MG.move_group->setStartStateToCurrentState();
+
+    moveit::planning_interface::MoveGroupInterface::Plan  plan;
+
+    plan.trajectory_ = tempTraject;
+//    rt.getRobotTrajectoryMsg(plan.trajectory_);
+    moveit::planning_interface::MoveItErrorCode status;
+    if(false)
+    {
+        status = MG.move_group->plan(plan);
+    }else{
+        status = MG.move_group->execute(plan);
+    }
+    if(status != moveit::planning_interface::MoveItErrorCode::SUCCESS)
+    {
+        ROS_ERROR_STREAM("ptr.execute ERROR ");
+        for(int i=0; i<plan.trajectory_.joint_trajectory.points.size(); i++)
+        {
+            ROS_ERROR_STREAM(i<< ": " << plan.trajectory_.joint_trajectory.points[i]);
+        }
+        return false;
+    }
+    ROS_INFO_STREAM("MOVE SUCCESS");
     return true;
 }
 
@@ -405,26 +482,27 @@ bool motion::testCB(std_srvs::Empty::Request& req, std_srvs::Empty::Response& re
 //        cout<<"服务连接失败"<<endl;
 //    }
 
-//        vector<double> p1 = vector<double>({-0.9,-0.86, 2.19,0,1.87,-0.9});
-//        vector<double> p2 = vector<double>({0,-1.5,3.0,0,1.57,3.14});
-//        vector<double> p3 = vector<double>({0,-1.57,3.14,0,1.57,0});
-//        vector<vector<double>> pp;
-//        pp.push_back(p1);pp.push_back(p2);pp.push_back(p3);
-//
-//        ros::ServiceClient client=Node->serviceClient<hirop_msgs::moveToMultiPose>("moveToMultiPose");
-//        hirop_msgs::moveToMultiPose srv;
-//        srv.request.poseList_joints_angle.resize(3);
-//        for (int j = 0; j <3; ++j) {
-//            srv.request.poseList_joints_angle[j].joints_angle.data.resize(6);
-//            for(int i=0;i<6;i++){
-//                srv.request.poseList_joints_angle[j].joints_angle.data[i]=pp[j][i];
-//            }
-//        }
-//        if(client.call(srv)){
-//            cout<<"服务调用完毕"<<endl;
-//        } else{
-//            cout<<"服务连接失败"<<endl;
-//        }
+        vector<double> p1 = vector<double>({-0.9,-0.86, 2.19,0,1.87,-0.9});
+        vector<double> p2 = vector<double>({0,-1.5,3.0,0,1.57,3.14});
+        vector<double> p3 = vector<double>({0,-1.57,3.14,0,1.57,0});
+        vector<vector<double>> pp;
+        pp.push_back(p1);pp.push_back(p2);pp.push_back(p3);
+
+        ros::ServiceClient client=Node->serviceClient<hirop_msgs::moveToMultiPose>("motion_bridge/moveToMultiPose");
+        hirop_msgs::moveToMultiPose srv;
+        srv.request.moveGroup_name="arm";
+        srv.request.poseList_joints_angle.resize(3);
+        for (int j = 0; j <3; ++j) {
+            srv.request.poseList_joints_angle[j].joints_angle.data.resize(6);
+            for(int i=0;i<6;i++){
+                srv.request.poseList_joints_angle[j].joints_angle.data[i]=pp[j][i];
+            }
+        }
+        if(client.call(srv)){
+            cout<<"服务调用完毕"<<endl;
+        } else{
+            cout<<"服务连接失败"<<endl;
+        }
 
 //    ros::ServiceClient client=Node->serviceClient<hirop_msgs::moveLine>("moveLine");
 //    hirop_msgs::moveLine srv;
@@ -457,41 +535,41 @@ bool motion::testCB(std_srvs::Empty::Request& req, std_srvs::Empty::Response& re
 //        cout<<"服务连接失败"<<endl;
 //    }
 
-    vector<double> p1 = vector<double>({-0.9,-0.86, 2.19,0,1.87,-0.9});
-
-    vector<double> p2 = vector<double>({0,-1.5,3.0,0,1.57,3.14});
-
-    vector<double> p3 = vector<double>({0,-1.57,3.14,0,1.57,0});
-
-    vector<vector<double>> pp;
-    pp.push_back(p1);pp.push_back(p2);pp.push_back(p3);
-
-
-    trajectory_msgs::JointTrajectory createTraj0,createTraj1;
-
-//    for(int i = 0; i< 100; i++){
-    // move_group0
-    trajectPrepareMulti(pp, *MoveGroupList[0].move_group,createTraj0 );
-
-    //move_group1
-    trajectPrepareMulti(pp, *MoveGroupList[1].move_group,createTraj1 );
+//    vector<double> p1 = vector<double>({-0.9,-0.86, 2.19,0,1.87,-0.9});
+//
+//    vector<double> p2 = vector<double>({0,-1.5,3.0,0,1.57,3.14});
+//
+//    vector<double> p3 = vector<double>({0,-1.57,3.14,0,1.57,0});
+//
+//    vector<vector<double>> pp;
+//    pp.push_back(p1);pp.push_back(p2);pp.push_back(p3);
+//
+//
+//    trajectory_msgs::JointTrajectory createTraj0,createTraj1;
+//
+////    for(int i = 0; i< 100; i++){
+//    // move_group0
+//    trajectPrepareMulti(pp, *MoveGroupList[0].move_group,createTraj0 );
+//
+//    //move_group1
+//    trajectPrepareMulti(pp, *MoveGroupList[1].move_group,createTraj1 );
+////    }
+////    pub_robLeft.publish(createTraj0);
+////    pub_robRight.publish(createTraj1);
+//    ros::ServiceClient client=Node->serviceClient<hirop_msgs::dualRbtraject>("motion_bridge/dualRobMotion_JointTraject");
+//    hirop_msgs::dualRbtraject srv;
+//    srv.request.robotMotionTraject_list.resize(2);
+//    srv.request.robotMotionTraject_list[0].moveGroup_name="arm0";
+//    srv.request.robotMotionTraject_list[0].robot_jointTra=createTraj0;
+//    srv.request.robotMotionTraject_list[1].moveGroup_name="arm1";
+//    srv.request.robotMotionTraject_list[1].robot_jointTra=createTraj1;
+//    if(client.call(srv)){
+//        if(srv.response.is_success){
+//         cout<<"service call over"<<endl;
+//        }
+//    }else{
+//        cout<<"service connect faile"<<endl;
 //    }
-//    pub_robLeft.publish(createTraj0);
-//    pub_robRight.publish(createTraj1);
-    ros::ServiceClient client=Node->serviceClient<hirop_msgs::dualRbtraject>("motion_bridge/dualRobMotion_JointTraject");
-    hirop_msgs::dualRbtraject srv;
-    srv.request.robotMotionTraject_list.resize(2);
-    srv.request.robotMotionTraject_list[0].moveGroup_name="arm0";
-    srv.request.robotMotionTraject_list[0].robot_jointTra=createTraj0;
-    srv.request.robotMotionTraject_list[1].moveGroup_name="arm1";
-    srv.request.robotMotionTraject_list[1].robot_jointTra=createTraj1;
-    if(client.call(srv)){
-        if(srv.response.is_success){
-         cout<<"service call over"<<endl;
-        }
-    }else{
-        cout<<"service connect faile"<<endl;
-    }
 
 
 
@@ -518,6 +596,17 @@ void motion::callback_rob1Status_subscriber(const industrial_msgs::RobotStatus::
     if(robot_status->in_error.val!=0){
         ROS_INFO_STREAM("ur52 err");
     }
+}
+
+void motion::callback_robStatus_subscriber(const industrial_msgs::RobotStatus::ConstPtr robot_status) {
+    MoveGroupList[0].motion_val=robot_status->in_motion.val;
+    if(robot_status->in_motion.val==1){
+        ass_flag_RbMotion=true;
+//        cout<<"listen motion==1"<<endl;
+    }
+//    if(robot_status->in_error.val!=0){
+//        ROS_INFO_STREAM("robot err");
+//    }
 }
 
 int motion::trajectPrepareMulti( const vector<vector<double>> & end ,
@@ -597,3 +686,5 @@ int motion::createTrajectPlan(moveit_msgs::RobotTrajectory &tempTraject,moveit::
     rt.getRobotTrajectoryMsg(tempTraject);
 
 }
+
+

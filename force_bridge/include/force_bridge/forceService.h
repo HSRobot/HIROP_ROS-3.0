@@ -25,9 +25,16 @@
 #include "std_msgs/Int16.h"
 #include "industrial_msgs/RobotStatus.h"
 #include "hirop_msgs/force_algorithmChange.h"
+#include <realtime_tools/realtime_publisher.h>
+#include <boost/asio.hpp>
 using namespace std;
 
 #define PUBPOSE_HZ 40
+
+enum ForceMode{
+    Impenderr,
+    ForceTechPoint,
+};
 
 struct MoveGroup{
     moveit::planning_interface::MoveGroupInterface *move_group;
@@ -52,7 +59,7 @@ private:
     bool isSim ;
     bool XZReverseDirect;
 
-    bool is_stop ;
+    atomic<bool> is_stop ;
     bool is_running ;
     bool flag_SetForceBias;
     atomic<bool> robot_servo_status;
@@ -68,15 +75,20 @@ private:
     vector<double > yamlPara_Damping;//阻尼
     vector<double > yamlPara_Mass;//质量
     vector<vector<double >> safetyAreaScope; //划定工作区域
+    vector<double> startPos;
+    ForceMode mode;
     //ros变量
     ros::NodeHandle* Node;
-    ros::Publisher  joint_state_pub ;
     ros::Publisher Pose_state_pub;
     ros::ServiceServer impedenceStart_server;
     ros::ServiceServer impedenceClose_server;
     ros::ServiceServer force_algorithmChange_server;
     ros::Subscriber   force_sub, robot_status_sub;
+    typedef boost::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::JointState> > RtPublisherPtr;
+    RtPublisherPtr joint_state_pub; //joint listen
 
+    boost::asio::io_service io_service;
+    boost::asio::deadline_timer *timer;
 public:
 
     /***
@@ -106,7 +118,7 @@ public:
      * 开启阻抗控制
      * @return
      */
-    int StartImpedenceCtl();
+    bool StartImpedenceCtl();
 
     /***
      * 停止阻抗控制
@@ -163,6 +175,9 @@ public:
 
     //接收机器人状态
     void robotStausCallback(const industrial_msgs::RobotStatusConstPtr& msg);
+private:
+    void impdenceErrThreadRun();
+
 };
 
 

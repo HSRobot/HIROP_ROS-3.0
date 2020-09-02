@@ -6,11 +6,15 @@ add_compile_options(-std=c++11 -D_LINUX_)
 
 add_definitions(-D__LINUX__)
 
+#set(CMAKE_BUILD_TYPE "Debug")
+#set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   hirop_msgs
-  message_generation
+#  message_generation
+  tf
 )
 
 #generate_messages(
@@ -21,7 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
  CATKIN_DEPENDS 
  roscpp 
- message_runtime
+# message_runtime
  hirop_msgs
 )
 
