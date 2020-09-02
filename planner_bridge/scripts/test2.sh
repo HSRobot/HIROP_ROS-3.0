@@ -1,6 +1,8 @@
 rosservice call /trajectory_planner/sigleIncrementAngle "index:
-- joint6
-- joint1
+- joint4
+- joint4
+- joint4
 incrementAngle:
 - -90
-- 90" 
+- 180
+- -90" 
