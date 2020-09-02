@@ -111,9 +111,8 @@ void forceService::impdenceErrThreadRun()
 
         std::vector<double> outJoint;
         geometry_msgs::Pose outPose;
-        if(computeImpedence(out_dealForce, outJoint,outPose)!=0){
+        if(computeImpedence(out_dealForce, outJoint,outPose) != 0){
             continue;
-//            return -1;
         }
         //发布位姿
         Pose_state_pub.publish(outPose);
@@ -124,6 +123,32 @@ void forceService::impdenceErrThreadRun()
     }
     is_running= false;
 
+}
+
+void forceService::impdenceErrAdjustThreadRun()
+{
+    while(ros::ok()&&(!is_stop)&&(!ros::isShuttingDown())&&(robot_servo_status))
+    {
+        auto start = boost::chrono::system_clock::now();
+
+        vector<double > copy_currentForce=currentForce;
+        assert(copy_currentForce.size() >0 );
+        vector<double > out_dealForce;
+        forceDataDeal(copy_currentForce,out_dealForce);
+
+        std::vector<double> outJoint;
+        geometry_msgs::Pose outPose;
+        if(computeImpedence(out_dealForce, outJoint,outPose) != 0){
+            continue;
+        }
+        //发布位姿
+        Pose_state_pub.publish(outPose);
+        //执行运动
+        publishPose(outJoint);
+        boost::this_thread::sleep_until( start +boost::chrono::milliseconds(PUBPOSE_HZ));
+        ROS_INFO_STREAM("<---------------------------------------------------->");
+    }
+    is_running= false;
 }
 
 //停止阻抗控制
@@ -233,6 +258,8 @@ bool forceService::impedenceCloseCB(std_srvs::SetBool::Request &req, std_srvs::S
     res.success = true;
     return true;
 }
+
+
 
 void forceService::forceCallbackXZ(const geometry_msgs::Wrench::ConstPtr &msg) {
     currentForce[0] = msg->force.x * yamlPara_forceScale[0] ;
@@ -369,9 +396,7 @@ int forceService::computeImpedence(std::vector<double> &force, std::vector<doubl
     cout<<"计算得偏移量y_offset: "<<Xa[1]<<endl;
     cout<<"计算得偏移量z_offset: "<<Xa[2]<<endl;
 
-    double diff=0;
     std::vector<double> joint_values;
-    vector<double > curJoint;
     geometry_msgs::Pose computePose;
 
     //3.位姿补偿计算
@@ -388,17 +413,6 @@ int forceService::computeImpedence(std::vector<double> &force, std::vector<doubl
 
     // 返回计算后的关节角
     MG.kinematic_state->copyJointGroupPositions(MG.joint_model_group, joint_values);
-    //关节角偏移量
-    // curJoint =MG.move_group->getCurrentJointValues();
-    // for (size_t i = 0; i < 6; i++)
-    // {
-    //     diff=(joint_values[i]-curJoint[i])*180/M_PI;
-    //     cout<<"计算偏移量joint"<<i<<"偏差角度值: "<<setprecision(2)<<diff<<endl;
-    //     if((diff<-0.6)||(diff>0.6))
-    //     {
-    //         flag=true;
-    //     }
-    // }
 
     outJoint =  std::move(joint_values);
     return 0;

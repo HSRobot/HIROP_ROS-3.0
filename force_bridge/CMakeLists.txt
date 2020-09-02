@@ -27,8 +27,9 @@ catkin_package()
 ## Your package locations should be listed before other locations
 include_directories(
  include/force_bridge
-/usr/local/include/hirop
+  /usr/local/include/hirop
   ${catkin_INCLUDE_DIRS}
+  include/motionCoorUlity/
 )
 
 link_directories(/usr/local/lib)
@@ -39,6 +40,7 @@ add_executable(force_bridge
         src/main.cpp
         include/force_bridge/forceService.h
         src/forceService.cpp
+        src/motionCoorUlity/motionCoorUlity.cpp
         )
 
 target_link_libraries(force_bridge
@@ -56,5 +58,5 @@ target_link_libraries(shakeHandJudge ${catkin_LIBRARIES})
 add_executable(node_daq src/node_daq.cpp)
 target_link_libraries(node_daq ${catkin_LIBRARIES}   yaml-cpp)
 
-add_executable(motionCoorControl src/motionCoorControl.cpp)
+add_executable(motionCoorControl src/motionCoorServer.cpp)
 target_link_libraries(motionCoorControl ${catkin_LIBRARIES})

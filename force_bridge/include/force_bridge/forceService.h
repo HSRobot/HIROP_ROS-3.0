@@ -87,7 +87,7 @@ private:
     RtPublisherPtr joint_state_pub; //joint listen
 public:
 
-    /***
+    /**
      * 阻抗控制启动服务
      * @param req
      * @param res
@@ -95,7 +95,7 @@ public:
      */
     bool impedenceStartCB(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res);
 
-    /***
+    /**
      * 阻抗控制关闭服务
      * @param req
      * @param res
@@ -103,8 +103,48 @@ public:
      */
     bool impedenceCloseCB(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res);
 
+
+    /**
+     * @brief impedenceAdjustPathStart
+     * @return
+     */
+    bool impedenceAdjustPathStart();
+
+    /**
+     * @brief impedenceAdjustPathStop
+     * @return
+     */
+    bool impedenceAdjustPathStop();
+
+    /**
+     * @brief force_algorithmChangeCB
+     * @param req
+     * @param res
+     * @return
+     */
     bool force_algorithmChangeCB(hirop_msgs::force_algorithmChange::Request &req, hirop_msgs::force_algorithmChange::Response &res);
 
+
+    //接收传感器数据
+    /**
+     * @brief forceCallbackZX
+     * @param msg
+     */
+    void forceCallbackZX(const geometry_msgs::Wrench::ConstPtr& msg);
+
+    //接收传感器数据 xz方向输入力矩换向
+    /**
+     * @brief forceCallbackXZ
+     * @param msg
+     */
+    void forceCallbackXZ(const geometry_msgs::Wrench::ConstPtr& msg);
+
+    /**
+     * @brief robotStausCallback 接收机器人状态
+     * @param msg
+     */
+    void robotStausCallback(const industrial_msgs::RobotStatusConstPtr& msg);
+public:
     /***
      * 初始化参数
      */
@@ -134,6 +174,7 @@ public:
      */
     int updateParam();
 
+
     void forceDataDeal(const vector<double >& original_force,vector<double >& deal_force);
 
     /***
@@ -151,12 +192,6 @@ public:
     //运动学模型加载初始化
     bool initKinematic();
 
-    //接收传感器数据
-    void forceCallbackZX(const geometry_msgs::Wrench::ConstPtr& msg);
-
-    //接收传感器数据 xz方向输入力矩换向
-    void forceCallbackXZ(const geometry_msgs::Wrench::ConstPtr& msg);
-
     //发布关节坐标执行运动
     void publishPose(std::vector<double> &joint_Pose);
 
@@ -169,10 +204,9 @@ public:
     //阻抗计算
     int computeImpedence( std::vector<double> &force , std::vector<double> &outJoint,geometry_msgs::Pose &outPose);
 
-    //接收机器人状态
-    void robotStausCallback(const industrial_msgs::RobotStatusConstPtr& msg);
 private:
     void impdenceErrThreadRun();
+    void impdenceErrAdjustThreadRun();
 
 };
 
