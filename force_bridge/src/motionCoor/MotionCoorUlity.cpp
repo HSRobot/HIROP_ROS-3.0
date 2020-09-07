@@ -1,4 +1,4 @@
-#include <motionCoorUlity.h>
+#include <MotionCoorUlity.h>
 #include <boost/make_shared.hpp>
 #include <array>
 //#include <CsvFile.h>
@@ -23,6 +23,8 @@ void MotionCoorUlity::setTraject(const trajectory_msgs::JointTrajectory &traj)
 bool MotionCoorUlity::computeTraj()
 {
     timeCompute();
+
+    jointDataQue->clear();
     assert(curMsg.points.size() > 0);
     int index = 0;
 

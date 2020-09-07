@@ -1,3 +1,4 @@
 trajectory_msgs/JointTrajectory trajectPath
+int64 mode
 ---
 bool result

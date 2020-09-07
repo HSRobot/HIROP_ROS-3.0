@@ -29,7 +29,7 @@ include_directories(
  include/force_bridge
   /usr/local/include/hirop
   ${catkin_INCLUDE_DIRS}
-  include/motionCoorUlity/
+  include/motionCoor/
 )
 
 link_directories(/usr/local/lib)
@@ -40,7 +40,7 @@ add_executable(force_bridge
         src/main.cpp
         include/force_bridge/forceService.h
         src/forceService.cpp
-        src/motionCoorUlity/motionCoorUlity.cpp
+        src/motionCoor/MotionCoorUlity.cpp
         )
 
 target_link_libraries(force_bridge
@@ -52,11 +52,12 @@ target_link_libraries(force_bridge
  )
 
 
+
 add_executable(shakeHandJudge src/shakeHandJudge.cpp)
 target_link_libraries(shakeHandJudge ${catkin_LIBRARIES})
 
 add_executable(node_daq src/node_daq.cpp)
 target_link_libraries(node_daq ${catkin_LIBRARIES}   yaml-cpp)
 
-add_executable(motionCoorControl src/motionCoorServer.cpp)
+add_executable(motionCoorControl src/MotionCoorNode.cpp src/motionCoor/MotionCoorServer.cpp)
 target_link_libraries(motionCoorControl ${catkin_LIBRARIES})

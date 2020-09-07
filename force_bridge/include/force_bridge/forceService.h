@@ -26,13 +26,18 @@
 #include "industrial_msgs/RobotStatus.h"
 #include "hirop_msgs/force_algorithmChange.h"
 #include <realtime_tools/realtime_publisher.h>
+#include <hirop_msgs/ImpedenceAdjustStart.h>
+#include <hirop_msgs/ImpedenceAdjustStop.h>
+#include <MotionCoorUlity.h>
+
 using namespace std;
 
-#define PUBPOSE_HZ 40
+#define PUBPOSE_HZ 39
 
 enum ForceMode{
-    Impenderr,
-    ForceTechPoint,
+    Impenderr = 0,
+    ForceTechPoint = 1,
+    AdjustImpendControl =2,
 };
 
 struct MoveGroup{
@@ -59,7 +64,7 @@ private:
     bool XZReverseDirect;
 
     atomic<bool> is_stop ;
-    bool is_running ;
+    atomic<bool> is_running ;
     bool flag_SetForceBias;
     atomic<bool> robot_servo_status;
     vector<double > currentForce,bias_force; //当前力传感器数据,力传感器零点偏差
@@ -79,12 +84,17 @@ private:
     //ros变量
     ros::NodeHandle* Node;
     ros::Publisher Pose_state_pub;
-    ros::ServiceServer impedenceStart_server;
-    ros::ServiceServer impedenceClose_server;
+    ros::ServiceServer impedenceStart_server; //纯阻抗
+    ros::ServiceServer impedenceClose_server; //纯阻抗
+
+
     ros::ServiceServer force_algorithmChange_server;
     ros::Subscriber   force_sub, robot_status_sub;
     typedef boost::shared_ptr<realtime_tools::RealtimePublisher<sensor_msgs::JointState> > RtPublisherPtr;
     RtPublisherPtr joint_state_pub; //joint listen
+
+    boost::shared_ptr<MotionCoorUlity> motionCoorPtr;
+    ros::ServiceClient stopMotionSer;
 public:
 
     /**
@@ -93,28 +103,15 @@ public:
      * @param res
      * @return
      */
-    bool impedenceStartCB(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res);
-
+    bool impedenceStartCB(hirop_msgs::ImpedenceAdjustStartRequest &req, hirop_msgs::ImpedenceAdjustStartResponse &res);
     /**
      * 阻抗控制关闭服务
      * @param req
      * @param res
      * @return
      */
-    bool impedenceCloseCB(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res);
+    bool impedenceCloseCB(hirop_msgs::ImpedenceAdjustStopRequest &req, hirop_msgs::ImpedenceAdjustStopResponse &res);
 
-
-    /**
-     * @brief impedenceAdjustPathStart
-     * @return
-     */
-    bool impedenceAdjustPathStart();
-
-    /**
-     * @brief impedenceAdjustPathStop
-     * @return
-     */
-    bool impedenceAdjustPathStop();
 
     /**
      * @brief force_algorithmChangeCB
@@ -201,13 +198,63 @@ public:
     //获取当前位姿
     void getCurrentPose(geometry_msgs::Pose& Pose);
 
-    //阻抗计算
-    int computeImpedence( std::vector<double> &force , std::vector<double> &outJoint,geometry_msgs::Pose &outPose);
+
 
 private:
+    /**
+     * @brief impdenceErrThreadRun 主要的阻抗运算函数
+     */
     void impdenceErrThreadRun();
-    void impdenceErrAdjustThreadRun();
 
+    /**
+     * @brief FKComputePose 机器人正解
+     * @param joint_Pose
+     * @param Pose
+     */
+    void FKComputePose(const std::vector<double> &joint_Pose, geometry_msgs::Pose& Pose);
+
+    /**
+     * @brief IKCompute 机器人逆解
+     * @param Pos
+     * @param joint_Pose
+     * @return
+     */
+    int IKCompute(const geometry_msgs::Pose& Pos, std::vector<double> &joint_Pose);
+
+    /**
+     * @brief computeImpedence 计算阻抗增量
+     * @param force
+     * @param outBiasJoint
+     * @return
+     */
+    int computeImpedence(std::vector<double> &force, std::vector<double> &outBiasJoint );
+
+    /**
+     * @brief computeAjustImpedence 计算顺应点位
+     * @param force
+     * @param outJoint
+     * @param outPose
+     * @return
+     */
+    int computeAdjustImpedence(std::vector<double> &nextPose, std::vector<double> &force , std::vector<double> &outJoint,\
+                              geometry_msgs::Pose &outPose);
+
+    /**
+     * @brief computeImpedenceAndResult     阻抗计算并且获取结果
+     * @param force
+     * @param outJoint
+     * @param outPose
+     * @return
+     */
+    int computeImpedenceAndResult( std::vector<double> &force , std::vector<double> &outJoint,\
+                                   geometry_msgs::Pose &outPose);
+
+
+    /**
+     * @brief debugImpendXa 打印 增量
+     * @param XA
+     */
+    void debugImpendXa(std::vector<double> &XA);
 };
 
 

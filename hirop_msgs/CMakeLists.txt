@@ -24,7 +24,8 @@ add_message_files(
 
 file(GLOB SRV_LIST srv/*.srv)
 file(GLOB hsclouddata_LIST srv/hsclouddata/*.srv)
-list(APPEND SRV_LIST ${hsclouddata_LIST})
+file(GLOB force_bridge_LIST srv/force_bridge/*.srv)
+list(APPEND SRV_LIST ${hsclouddata_LIST} ${force_bridge_LIST})
 set(subSrvList "")
 # string(REPLACE "/CMakeLists.txt" "/" childrenRmTxt ${children})
 foreach(children ${SRV_LIST})
@@ -32,12 +33,13 @@ foreach(children ${SRV_LIST})
       list(APPEND subSrvList ${childrenRmTxtRel})
 endforeach()
 
+
+
 add_service_files(
   FILES
   ${subSrvList}
  # ${hsclouddata_SRV_LIST}
 )
-
 generate_messages(
   DEPENDENCIES
   std_msgs
@@ -46,10 +48,11 @@ generate_messages(
   shape_msgs
   moveit_msgs
 )
-
 catkin_package(
   CATKIN_DEPENDS  
   std_msgs 
   geometry_msgs 
   trajectory_msgs
 )
+
+

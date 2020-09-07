@@ -46,6 +46,11 @@ struct ImpandenceJointData
         return false;
     }
 
+    void clear()
+    {
+        jointQue = std::queue<std::array<double, 6>>();
+    }
+
 
     int size(){
         return jointQue.size();

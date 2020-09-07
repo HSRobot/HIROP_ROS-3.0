@@ -334,7 +334,7 @@ bool motion::moveLineCB(hirop_msgs::moveLine::Request &req, hirop_msgs::moveLine
     MoveGroupList[robot_num].move_group->setStartStateToCurrentState();
     //1.获取当前位姿
     startPos= MoveGroupList[robot_num].move_group->getCurrentJointValues();
-//    cout<<startPos.size()<<endl;
+    assert( startPos.size() == 6 );
 
 
     MoveGroupList[robot_num].kinematic_state->setJointGroupPositions(MoveGroupList[robot_num].joint_model_group, startPos);

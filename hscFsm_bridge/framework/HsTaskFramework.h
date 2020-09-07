@@ -18,6 +18,7 @@ typedef const std::vector<string> callParm;
 //#define TASK(T) std::string(T)
 
 
+
 class HsTaskFramework: public FsmFramworkInterface
 {
 public:
@@ -77,7 +78,14 @@ protected:
      * @brief debugTaskList
      */
     void debugTaskList() override;
-protected:
+
+    /**
+     * @brief setMode
+     * @param mode
+     */
+    virtual void setMode(Mode mode);
+
+private:
     /**
      * @brief setCommandProxy
      * @param behevior
@@ -144,6 +152,7 @@ private:
 private:
     std::shared_ptr<HsTaskFramework> framework;
     ros::NodeHandle nh;
+    Mode mode;
 
 };
 

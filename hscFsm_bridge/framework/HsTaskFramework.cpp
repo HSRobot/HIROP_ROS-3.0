@@ -13,11 +13,11 @@ HsTaskFramework::HsTaskFramework()
 HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFramework> &fsm):typeCode(0),taskRunStatus(false)
 {
     this->nh = nh;
-    framework = fsm;
-    fsmStack = fsm->fsmStack;
-    notitySem = std::make_shared<semaphore>(fsm->taskName);
-
-    threadpool = std::make_shared<ThreadPool>(4);
+    this->framework = fsm;
+    this->fsmStack = fsm->fsmStack;
+    this->notitySem = std::make_shared<semaphore>(fsm->taskName);
+    this->threadpool = std::make_shared<ThreadPool>(4);
+    this->mode = Auto;
 }
 
 void HsTaskFramework::init()
@@ -65,6 +65,11 @@ string HsTaskFramework::getTaskName()
 void HsTaskFramework::debugTaskList()
 {
     std::cout <<fsmStack.get();
+}
+
+void HsTaskFramework::setMode(Mode mode)
+{
+    this->mode = mode;
 }
 
 /**
@@ -116,7 +121,21 @@ State HsTaskFramework::getTaskState()
 
 void HsTaskFramework::setTaskState(HsFsm::state state)
 {
-    threadpool->enqueue(&fsm::stack::set, fsmStack.get(), state );
+    switch (mode) {
+    case Auto:
+        threadpool->enqueue(&fsm::stack::set, fsmStack.get(), state );
+        break;
+    case Manual:
+        string current = string(state);
+        if(current == "init" ){
+            std::cout << "Skip the state ..... "<<std::endl;
+            break;
+        }
+        threadpool->enqueue(&fsm::stack::set, fsmStack.get(), "Middle" );
+        break;
+    default:
+        break;
+    }
 }
 
 void HsTaskFramework::setInitState()

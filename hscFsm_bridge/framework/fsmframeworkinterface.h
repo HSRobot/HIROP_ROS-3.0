@@ -6,10 +6,10 @@
 #include <commonType.h>
 namespace HsFsm {
 
-/*
- * errorType -1 找不到 相关的行为
- *
- */
+enum Mode{
+ Auto = 0,
+ Manual = 1,
+};
 
 class FsmFramworkInterface
 {
@@ -22,6 +22,7 @@ public:
     virtual bool registerTaskList()=0;
     virtual std::string getTaskName()=0;
     virtual void debugTaskList()=0;
+    virtual void setMode(Mode mode) = 0;
 };
 
 }
