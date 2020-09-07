@@ -6,10 +6,10 @@ rosservice call /trajectory_planner/jointSpacePlanner "joints:
   - 0
   - 90
   - 90
-- joint:
-  - 0
-  - -100
-  - 180
-  - 0
-  - 90
-  - 100"
+# - joint:
+#   - 0
+#   - -100
+#   - 180
+#   - 0
+#   - 90
+#   - 100"

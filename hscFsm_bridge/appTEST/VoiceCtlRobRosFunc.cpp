@@ -55,6 +55,7 @@ void VoiceCtlRobRosFunc::initRosToptic(){
     rosTopicHd.closeShakeHandJudge_client=Node->serviceClient<std_srvs::SetBool>("shakeHandJudge/end");
 
     rosTopicHd.jointMultiClient = Node->serviceClient<hirop_msgs::moveToMultiPose>("motion_bridge/moveToMultiPose");
+    rosTopicHd.exeTrajectoryClinet = Node->serviceClient<hirop_msgs::dualRbtraject>("motion_bridge/sigRobMotion_JointTraject");                                                                               
     rosTopicHd.loadPoseDataClient = Node->serviceClient<hirop_msgs::loadPoseData>("/load_pose_data");
     rosTopicHd.loadJointDataClient = Node->serviceClient<hirop_msgs::loadJointsData>("/load_joint_data");
     rosTopicHd.jointPlannerClinet = Node->serviceClient<hirop_msgs::addJointPose>("/trajectory_planner/jointSpacePlanner");
@@ -75,6 +76,8 @@ void VoiceCtlRobRosFunc::initRosToptic(){
     rosTopicHd.objectArraySub = Node->subscribe<hirop_msgs::ObjectArray>("object_array", 1, &VoiceCtlRobRosFunc::callback_objectCallBack, this);
     rosTopicHd.voice_order_sub = Node->subscribe("/voice_order", 1, &VoiceCtlRobRosFunc::voice_order_CallBack, this);
     rosTopicHd.people_detect_sub = Node->subscribe("/pedestrian_detection", 1, &VoiceCtlRobRosFunc::people_detect_CallBack, this);
+    rosTopicHd.shakehandstatus_sub = Node->subscribe("shakeHandJudge/Status", 1, &VoiceCtlRobRosFunc::shakehandstatus_CallBack, this);
+
 
 }
 
@@ -137,6 +140,12 @@ void VoiceCtlRobRosFunc::people_detect_CallBack(const std_msgs::Bool::ConstPtr &
     }
 }
 
+void VoiceCtlRobRosFunc::shakehandstatus_CallBack(const hirop_msgs::shakeHandStatus::ConstPtr msg){
+    statemonitor.isEnd_shakeHand=msg->shakeHand_over;
+}
+
+
+
 
 //功能函数
 bool VoiceCtlRobRosFunc::transformFrame(geometry_msgs::PoseStamped& poseStamped, std::string frame_id)
@@ -186,6 +195,22 @@ bool VoiceCtlRobRosFunc::transformFrame(geometry_msgs::PoseStamped& poseStamped,
     }
 }
 int VoiceCtlRobRosFunc::robGotoShakeHandPose(){
+    hsr_rosi_device::setModeSrv srv_SetMode;
+    srv_SetMode.request.mode = 0;
+    if (rosTopicHd.RobSetMode_client.call(srv_SetMode))
+    {
+        if (!srv_SetMode.response.finsh)
+        {
+            cout << "随动模式设置失败" << endl;
+            return -1;
+        }
+    }
+    else
+    {
+        cout<<"模式设置服务连接失败"<<endl;
+        return -1;
+    }
+
     int flag = -1;
     if(!handgesturePose.empty())
     {
@@ -212,17 +237,33 @@ int VoiceCtlRobRosFunc::startImpedence(){
         cout<<"模式设置服务连接失败"<<endl;
         return -1;
     }
+    hirop_msgs::shakeHandSet srv_shakeset;
+    srv_shakeset.request.MaxDistance=0.05;
+    srv_shakeset.request.MinDistance=0.01;
+    srv_shakeset.request.countTime=2;
+    rosTopicHd.startShakeHandJudge_client.call(srv_shakeset);
     //打开阻抗
     std_srvs::SetBool srv_startImp;
     srv_startImp.request.data=true;
-    //阻塞式服务
-    rosTopicHd.StartImpedence_client.call(srv_startImp);
-
+    //
+    if(rosTopicHd.StartImpedence_client.call(srv_startImp)){
+        if(!srv_startImp.response.success){
+            ROS_INFO("open impedence is_success failed ");
+            return  -1;
+        }
+    }else{
+        ROS_INFO("open impedence failed ");
+    }
+    cout<<"阻抗开启结束"<<endl;
     return 0;
 }
 
 int VoiceCtlRobRosFunc::closeImpedence() {
     //关闭阻抗
+    cout<<"关闭阻抗"<<endl;
+    std_srvs::SetBool srv_end;
+    srv_end.request.data=true;
+    rosTopicHd.closeShakeHandJudge_client.call(srv_end);
     std_srvs::SetBool srv_CloseImp;
     srv_CloseImp.request.data=true;
     if(rosTopicHd.CloseImpedence_client.call(srv_CloseImp)){
@@ -244,6 +285,7 @@ int VoiceCtlRobRosFunc::closeImpedence() {
         cout<<"模式设置服务连接失败"<<endl;
         return -1;
     }
+    system("rosservice call /stop_motion ");
     return 0;
 }
 
@@ -471,6 +513,7 @@ int VoiceCtlRobRosFunc::movePose(std::vector<std::vector<double> >& joints)
         if(getTrajectory(tra) == 0)
         {
             flag = motionMulti(tra);
+
         }
     }
     return flag;
@@ -535,7 +578,12 @@ int VoiceCtlRobRosFunc::getTrajectory(moveit_msgs::RobotTrajectory& tra)
     }
     else
     {
-        tra = getTraSrv.response.tarjectory;
+        tra.joint_trajectory.header = getTraSrv.response.tarjectory.joint_trajectory.header;
+        tra.joint_trajectory.joint_names = getTraSrv.response.tarjectory.joint_trajectory.joint_names;
+        for(int i= 0; i<getTraSrv.response.tarjectory.joint_trajectory.points.size(); i++)
+        {
+            tra.joint_trajectory.points.push_back(getTraSrv.response.tarjectory.joint_trajectory.points[i]);
+        }
     }
     return flag;
 }
@@ -543,30 +591,52 @@ int VoiceCtlRobRosFunc::getTrajectory(moveit_msgs::RobotTrajectory& tra)
 int VoiceCtlRobRosFunc::motionMulti(moveit_msgs::RobotTrajectory& tra)
 {
     int flag = 0;
-    hirop_msgs::moveToMultiPose moveSrv;
-    moveSrv.request.moveGroup_name = "arm";
-    int size = tra.joint_trajectory.points.size();
-    moveSrv.request.poseList_joints_angle.resize(size);
-    for(int i=0; i<size; i++)
-    {
-        moveSrv.request.poseList_joints_angle[i].joints_angle.data = tra.joint_trajectory.points[i].positions;
-    }
-    if(!rosTopicHd.jointMultiClient.call(moveSrv))
-    {
-        ROS_INFO_STREAM("check move pose server");
-        flag = -1;
-    }
-    else
-    {
-        if(moveSrv.response.is_success)
-        {
-            ROS_INFO_STREAM("move pose SUCCESS");
-        }
-        else
-        {
-            ROS_INFO_STREAM("move pose FAILED");
-        }
-    }
+//    hirop_msgs::moveToMultiPose moveSrv;
+//    moveSrv.request.moveGroup_name = "arm";
+//    int size = tra.joint_trajectory.points.size();
+//    moveSrv.request.poseList_joints_angle.resize(size);
+//    for(int i=0; i<size; i++)
+//    {
+//        moveSrv.request.poseList_joints_angle[i].joints_angle.data = tra.joint_trajectory.points[i].positions;
+//    }
+//    if(!rosTopicHd.jointMultiClient.call(moveSrv))
+//    {
+//        ROS_INFO_STREAM("check move pose server");
+//        flag = -1;
+//    }
+//    else
+//    {
+//        if(moveSrv.response.is_success)
+//        {
+//            ROS_INFO_STREAM("move pose SUCCESS");
+//        }
+//        else
+//        {
+//            ROS_INFO_STREAM("move pose FAILED");
+//            flag = -1;
+//        }
+//    }
+     hirop_msgs::dualRbtraject dTra;
+     dTra.request.robotMotionTraject_list.resize(1);
+     dTra.request.robotMotionTraject_list[0].moveGroup_name = "arm";
+     dTra.request.robotMotionTraject_list[0].robot_jointTra = tra.joint_trajectory;
+     if(!rosTopicHd.exeTrajectoryClinet.call(dTra))
+     {
+         ROS_INFO_STREAM("check move pose server");
+         flag = -1;
+     }
+     else
+     {
+         if(dTra.response.is_success)
+         {
+             ROS_INFO_STREAM("move pose SUCCESS");
+         }
+         else
+         {
+             ROS_INFO_STREAM("move pose FAILED");
+             flag = -1;
+         }
+     }
     return flag;
 }
 

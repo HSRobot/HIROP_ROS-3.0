@@ -30,6 +30,7 @@
 #include <hirop_msgs/ImpedenceAdjustStop.h>
 #include <MotionCoorUlity.h>
 
+
 using namespace std;
 
 #define PUBPOSE_HZ 39
@@ -95,6 +96,7 @@ private:
 
     boost::shared_ptr<MotionCoorUlity> motionCoorPtr;
     ros::ServiceClient stopMotionSer;
+
 public:
 
     /**

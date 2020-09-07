@@ -17,7 +17,7 @@ void VoiceCtlRobTask::init()
 
     // 自动转为 init 状态
     // 用户自定义添加内容
-    cout<<"没用的init"<<endl;
+    cout<<" 自动转为 init 状态"<<endl;
 }
 
 void VoiceCtlRobTask::quit()
@@ -70,6 +70,19 @@ bool VoiceCtlRobTask::registerTaskList()
     try{
         registerTask("init","initing", func_init_initing);//to---prepare
         registerTask("init","quiting", func_init_quiting);
+        registerTask("test", "initing",[&](const std::vector<std::string> &args){
+            VCRRF->robGotoShakeHandPose();
+            VCRRF->RobGoHome();
+            VCRRF->robGotoShakeHandPose();
+            VCRRF->RobGoHome();
+            VCRRF->robGotoShakeHandPose();
+            VCRRF->RobGoHome();
+            VCRRF->robGotoShakeHandPose();
+            VCRRF->RobGoHome();
+            VCRRF->robGotoShakeHandPose();
+            VCRRF->RobGoHome();
+            setstate("exit");
+        });
         registerTask("prepare","initing", func_prepare_initing);
         registerTask("prepare","start", func_transPrepare2detection);//to---detection
         registerTask("prepare","toExit", func_transPrepare2Exit);//to---exit
@@ -125,7 +138,17 @@ void VoiceCtlRobTask::init_initing(const std::vector<std::string> &args) {
     publishStateMsg(true,"initing","-----init_initing------");
     //初始化ros信号变量
     VCRRF->initStateMonitor();
-    threadForSwithState("prepare");
+    // cout<<"aa"<<endl;
+//     setTaskState("prepare");
+
+
+//    setTaskState("prepare");
+//    if(args.size() > 2)
+        setTaskState("test");
+//    else
+//        setTaskState("prepare");
+    //     cout<<"bb"<<endl;
+//    threadForSwithState("prepare");
     isRun_init= false;
 }
 
@@ -166,6 +189,7 @@ void VoiceCtlRobTask::Detection_initing(const std::vector<std::string> &args) {
     while ((!isStop)&&(!isErr)&&(ros::ok()))
     {
         sleep(1);
+
         if (VCRRF->getStateMonitor().hasPeople == 0){
             std::cout << "No people, staying at detection state, behaviour: initing! " << std::endl;
             continue;
@@ -174,14 +198,16 @@ void VoiceCtlRobTask::Detection_initing(const std::vector<std::string> &args) {
         std::cout << "Please choose your order! Now the robot_order is:  " <<VCRRF->getStateMonitor().voice_order << std::endl;
 
         switch (VCRRF->getStateMonitor().voice_order)
+//        int a=2;
+//        switch (a)
         {
-            case 0 :{
+            case 2 :{
                 std::cout << "Enter state: shakehand!" << std::endl;
                 threadForSwithState("shakehand");
                 isRun_detection=false;
                 return;
             }
-            case 1 :{
+            case 111 :{
                 std::cout << "Enter state: detectToy!" << std::endl;
                 threadForSwithState("detection");
                 isRun_detection=false;
@@ -240,7 +266,7 @@ void VoiceCtlRobTask::Shakehand_initing(const vector<std::string> &args) {
         isRun_shakehand= false;
         return;
     }
-    //3.机器人去到握手点位成功
+//    //3.机器人去到握手点位成功
     if(VCRRF->robGotoShakeHandPose()!=0){
         threadForSwithState("dealErr");
         cout<<"机器人去到握手点失败,进入处理故障状态"<<endl;
@@ -255,9 +281,21 @@ void VoiceCtlRobTask::Shakehand_initing(const vector<std::string> &args) {
         return;
     }
     //5.等待握手结束,发信号控制机械臂回原点
-    while((!isStop)&&(!isErr)){
-        if(VCRRF->getStateMonitor().isEnd_shakeHand){
-            if(VCRRF->RobGoHome()!=0){
+    while((!isStop)&&(!isErr))
+    {
+        if(VCRRF->getStateMonitor().isEnd_shakeHand)
+        {
+//            //关闭阻抗
+            if(VCRRF->closeImpedence()!=0)
+            {
+                threadForSwithState("dealErr");
+                cout<<"机器人关闭阻抗失败,进入处理故障状态"<<endl;
+                isRun_shakehand= false;
+                return;
+            }
+//            sleep(2);
+            if(VCRRF->RobGoHome()!=0)
+            {
                 threadForSwithState("dealErr");
                 cout<<"机器人回原点失败,进入处理故障状态"<<endl;
                 isRun_shakehand= false;
@@ -404,13 +442,13 @@ void VoiceCtlRobTask::transexit2init(const std::vector<std::string> &args) {
 }
 
 void VoiceCtlRobTask::threadForSwithState(const char* state) {
-    std::thread t([=]{
-        if((!isStop)&&(!isErr))
-        {
+    // std::thread t([=]{
+    //     if((!isStop)&&(!isErr))
+    //     {
             setTaskState(state);
-        }
-    });
-    t.detach();
+    //     }
+    // });
+    // t.detach();
 }
 
 void VoiceCtlRobTask::publishStateMsg(bool status,std::string behevior,std::string meassage) {

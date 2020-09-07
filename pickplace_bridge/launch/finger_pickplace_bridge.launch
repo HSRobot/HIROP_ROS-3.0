@@ -11,10 +11,9 @@
      <param name="move_group_config_path" type="str" value="$(arg move_group_config_path)"/>
   </node>
 
-  <!-- launch-prefix="gnome-terminal -e" -->
-  <arg name="move_group"  default="arm" />
-  <node name="serial_gripper" pkg="gripper_bridge" type="serial_gripper.py"  output="screen">
-    <param name="move_group" type="str" value="$(arg move_group)" />
+  <arg name="move_group_name"  default="arm" />
+  <node pkg="gripper_bridge" type="serial_gripper_finger.py" name="serial_gripper"  output="screen"  >
+    <param name="move_group_name" type="str" value="arm" />
   </node>	
 
 </launch>

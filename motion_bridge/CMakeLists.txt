@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning
   moveit_ros_planning_interface
   hirop_msgs
-  tf
+    tf
 #  pluginlib
 #  geometric_shapes
 #  pcl_ros

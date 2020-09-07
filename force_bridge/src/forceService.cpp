@@ -1,6 +1,7 @@
 #include "forceService.h"
 #include <boost/make_shared.hpp>
 #include <industrial_msgs/StopMotion.h>
+
 #include <chrono>
 #include <thread>
 forceService::forceService(ros::NodeHandle* n):mode(Impenderr) {
@@ -119,8 +120,9 @@ void forceService::impdenceErrThreadRun()
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     }
-    auto start = std::chrono::system_clock::now();
-    std::cout << "is_stop: "<<is_stop <<" robot_servo_status "<<robot_servo_status<<std::endl;
+
+    auto nextTime = std::chrono::system_clock::now();
+
     while(ros::ok()&&(!is_stop)&&(!ros::isShuttingDown())&&(robot_servo_status))
     {
 
@@ -162,17 +164,18 @@ void forceService::impdenceErrThreadRun()
             break;
         }
 
-
         //发布位姿
 //        Pose_state_pub.publish(outPose);
         //执行运动
         publishPose(outJoint);
 
-        start = start +std::chrono::milliseconds(PUBPOSE_HZ);
-        auto duration_in_ms = std::chrono::duration_cast<chrono::milliseconds>(start.time_since_epoch());
+        nextTime = nextTime +std::chrono::milliseconds(PUBPOSE_HZ);
+        auto duration_in_ms = std::chrono::duration_cast<chrono::milliseconds>(nextTime.time_since_epoch());
 
         std::cout << "<------------------------------------- "<<duration_in_ms.count()<<std::endl;
-        std::this_thread::sleep_until(start);
+
+        std:this_thread::sleep_until(nextTime );
+
     }
     is_running= false;
 
@@ -386,7 +389,6 @@ void forceService::publishOnceForRealRb(std::vector<double> &startPos) {
 
 void forceService::publishPose(std::vector<double> &joint_Pose) {
     sensor_msgs::JointState compute_robot_state;
-    compute_robot_state.header.stamp = ros::Time::now();
     compute_robot_state.name.resize(6);
     compute_robot_state.name = MG.joint_names;
 
@@ -399,8 +401,29 @@ void forceService::publishPose(std::vector<double> &joint_Pose) {
         tmp[i]=compute_robot_state.position[i]*180/M_PI;
         cout<<"点位执行关节"<<i<<"角度值: "<<compute_robot_state.position[i]*180/M_PI<<endl;;
     }
-    joint_state_pub->msg_ = compute_robot_state;
-    joint_state_pub->unlockAndPublish();
+
+    // if(tmp[1]<=-72){
+    //     cout<<"轴2非安全点"<<endl;
+    //     compute_robot_state.position[1]=(-72.0/180.0)*M_PI;
+    // }
+    // if(tmp[2]>=210){
+    //     cout<<"轴3非安全点"<<endl;
+    //     compute_robot_state.position[2]=(210.0/180.0)*M_PI;
+    // }
+    // if(tmp[4]<=-60){
+    //     cout<<"轴5非安全点"<<endl;
+    //     compute_robot_state.position[4]=(-60.0/180.0)*M_PI;
+    // }
+    compute_robot_state.header.stamp = ros::Time::now();
+
+//    while(true)
+//    {
+            joint_state_pub->msg_ = compute_robot_state;
+            joint_state_pub->unlockAndPublish();
+//            break;
+//        }
+//    }
+
     
 
 }
@@ -476,21 +499,26 @@ int forceService::computeImpedence(std::vector<double> &force, std::vector<doubl
 {
 
     //2.阻抗运算
-    vector<double > tmp_pose{0,0,0,0,0,0};
+    vector<double > tmp_pose{0,0,0,0,0,0}, Xa;
     force_plugin->setInputRobotPose(tmp_pose);
     force_plugin->setInputForceBias(force);
     cout<<"Force 1: "<<force[0]<<endl;
     cout<<"Force 2: "<<force[1]<<endl;
     cout<<"Force 3: "<<force[2]<<endl;
 
-    force_plugin->compute();
-    force_plugin->getResult(outBiasJoint);
-    // 补充位移量控制
-//    if(Xa[0]>=yamlPara_MaxVel_x){
-//        Xa[0]=yamlPara_MaxVel_x;
-//    }else if(Xa[0]<= -1*yamlPara_MaxVel_x){
-//        Xa[0]=-1*yamlPara_MaxVel_x;
-//    }
+    static geometry_msgs::Pose current_Pose;
+    getCurrentPose(current_Pose);
+
+
+    int i = force_plugin->compute();
+    force_plugin->getResult(Xa);
+    //位移量控制
+    const double protectXValue = -0.04;
+    if(Xa[0]>=yamlPara_MaxVel_x){
+        Xa[0]=yamlPara_MaxVel_x;
+    }else if(Xa[0]<= protectXValue){
+        Xa[0]= protectXValue;
+    }
 
 //    if(Xa[1]>=yamlPara_MaxVel_y){
 //        Xa[1]=yamlPara_MaxVel_y;
@@ -504,9 +532,26 @@ int forceService::computeImpedence(std::vector<double> &force, std::vector<doubl
 //        Xa[2]=-1*yamlPara_MaxVel_z;
 //    }
 
+//    double diff=0;
+    std::vector<double> joint_values;
+//    vector<double > curJoint;
+    static geometry_msgs::Pose computePose;
+    //3.位姿补偿计算
+
+    computePose = current_Pose;
+    computePose.position.x+=Xa[0];
+    computePose.position.y+=Xa[1];
+    computePose.position.z+=Xa[2];
+
+
+
+    // 返回计算后的关节角
+    MG.kinematic_state->copyJointGroupPositions(MG.joint_model_group, joint_values);
+    //关节角偏移量
+
+    outBiasJoint =  std::move(joint_values);
+    return 0;
 }
-
-
 
 void forceService::forceDataDeal(const vector<double >& original_force,vector<double >& deal_force) {
     assert(original_force.size() == 6);

@@ -117,7 +117,6 @@ int Planner::updateParam(std::string file)
     if(size[0] == 0 || size[1] == 0 || size[2] == 0 || 
             size[3] == 0 || size[4] == 0 || size[5] == 0)
     {
-        //  minx,  miny,  minz,  maxx,  maxy,  maxz
         move_group->setWorkspace(size[0], size[1], size[2], size[3], size[4], size[5]);
     }
     move_group->allowReplanning(plannerConfig.allowReplanning);
@@ -226,7 +225,7 @@ int Planner::AdjustTrajectory(moveit_msgs::RobotTrajectory& tra)
     robot_trajectory::RobotTrajectory rt(move_group->getRobotModel(), move_group->getName());
     rt.setRobotTrajectoryMsg(*(move_group->getCurrentState()), tra);
     trajectory_processing::IterativeParabolicTimeParameterization iptp;
-    iptp.computeTimeStamps(rt);
+    iptp.computeTimeStamps(rt, plannerConfig.velocityScalingFactor, plannerConfig.accelerationScalingFactor);
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
     // targetTrajectory.joint_trajectory.points.clear();
     rt.getRobotTrajectoryMsg(targetTrajectory);

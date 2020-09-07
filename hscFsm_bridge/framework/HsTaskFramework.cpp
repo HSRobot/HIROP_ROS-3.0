@@ -8,6 +8,8 @@ HsFsm::State HsTaskFramework::currentState;
 HsTaskFramework::HsTaskFramework()
 {
     fsmStack = std::make_shared<fsm::stack>();
+    threadpool = std::make_shared<ThreadPool>(4);
+
 }
 
 HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFramework> &fsm):typeCode(0),taskRunStatus(false)
@@ -136,6 +138,7 @@ void HsTaskFramework::setTaskState(HsFsm::state state)
     default:
         break;
     }
+21
 }
 
 void HsTaskFramework::setInitState()

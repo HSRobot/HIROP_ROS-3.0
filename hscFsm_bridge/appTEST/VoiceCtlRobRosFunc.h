@@ -43,6 +43,7 @@
 // motion
 // 轴多
 #include "hirop_msgs/moveToMultiPose.h"
+#include "hirop_msgs/dualRbtraject.h"
 
 #include "hirop_msgs/addJointPose.h"
 #include "hirop_msgs/addPose.h"
@@ -91,6 +92,7 @@ struct rosTopicHandle{
 
     // motion
     ros::ServiceClient jointMultiClient;
+    ros::ServiceClient exeTrajectoryClinet;
     // data_manager
     ros::ServiceClient loadPoseDataClient;
     ros::ServiceClient loadJointDataClient;
@@ -115,6 +117,7 @@ struct rosTopicHandle{
     ros::Subscriber objectArraySub ;
     ros::Subscriber voice_order_sub ;
     ros::Subscriber people_detect_sub ;
+    ros::Subscriber shakehandstatus_sub ;
 
 };
 
@@ -187,6 +190,7 @@ private:
     void callback_objectCallBack(hirop_msgs::ObjectArray obj);
     void voice_order_CallBack(const std_msgs::Int16::ConstPtr & msg);
     void people_detect_CallBack(const std_msgs::Bool::ConstPtr & msg);
+    void shakehandstatus_CallBack(const hirop_msgs::shakeHandStatus::ConstPtr msg);
 };
 
 
