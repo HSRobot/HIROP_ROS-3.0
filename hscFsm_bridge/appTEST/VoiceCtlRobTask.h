@@ -67,6 +67,7 @@ namespace HsFsm {
         void Wave_quiting(const std::vector<std::string> &args);
         void DetectToy_initing(const std::vector<std::string> &args);
         void DetectToy_quiting(const std::vector<std::string> &args);
+        void DetectToy_toExit(const std::vector<std::string> &args);
         void grabToy_initing(const std::vector<std::string> &args);
         void grabToy_quiting(const std::vector<std::string> &args);
         void dealErr_initing(const std::vector<std::string> &args);

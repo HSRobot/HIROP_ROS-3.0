@@ -155,6 +155,7 @@ void VoiceCtlRobRosFunc::people_detect_CallBack(const std_msgs::Bool::ConstPtr &
 }
 
 void VoiceCtlRobRosFunc::shakehandstatus_CallBack(const hirop_msgs::shakeHandStatus::ConstPtr msg){
+    cout<<"接受到握手end"<<endl;
     statemonitor.isEnd_shakeHand=msg->shakeHand_over;
 }
 
@@ -248,8 +249,8 @@ int VoiceCtlRobRosFunc::startImpedence(){
         return -1;
     }
     hirop_msgs::shakeHandSet srv_shakeset;
-    srv_shakeset.request.MaxDistance=0.1;
-    srv_shakeset.request.MinDistance=0.05;
+    srv_shakeset.request.MaxDistance=0.03;
+    srv_shakeset.request.MinDistance=0.02;
     srv_shakeset.request.countTime=1;
     rosTopicHd.startShakeHandJudge_client.call(srv_shakeset);
     //打开阻抗
@@ -307,7 +308,12 @@ int VoiceCtlRobRosFunc::RobGoHome(){
     int flag = -1;
     if(!HomeJointsPose.empty())
     {
-        flag = movePose(HomeJointsPose);
+        for(int i  = 0; i  < 3;i++)
+        {
+            flag = movePose(HomeJointsPose);
+            if(flag  ==  0)
+                break;
+        }
     }
     setfiveFingerIndex(HOME_INDEX);
     return flag;
@@ -670,7 +676,7 @@ int VoiceCtlRobRosFunc::detect(std::string& objName) {
     {
         flag = -1;
     }
-    cout<<"检测完毕"<<endl;
+    cout<<"检测完毕 "<<flag<<endl;
     return flag;
 }
 

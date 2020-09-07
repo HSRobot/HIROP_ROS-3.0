@@ -39,6 +39,24 @@ atomic<int > count_time;
 
 //服务回调函数 0.04,0.005,3
 bool shakeHand_beginCB(hirop_msgs::shakeHandSet::Request &req, hirop_msgs::shakeHandSet::Response &res){
+
+    std::thread t([&] {
+        while (ros::ok() && (!ros::isShuttingDown())&& (!shakeHand_end)) {
+            usleep(1000 * 100);
+            stamped = move_group->getCurrentPose("link6");
+            sh_data.CurRobotPose[0] = stamped.pose.position.x;
+            sh_data.CurRobotPose[1] = stamped.pose.position.y;
+            sh_data.CurRobotPose[2] = stamped.pose.position.z;
+            if (!sh_data.recordInitPose) {
+                sh_data.initRobotPose[0] = stamped.pose.position.x;
+                sh_data.initRobotPose[1] = stamped.pose.position.y;
+                sh_data.initRobotPose[2] = stamped.pose.position.z;
+                sh_data.recordInitPose = true;
+            }
+        }
+    });
+    t.detach();
+
     sh_data.MaxDistance=req.MaxDistance;
     sh_data.MinDistance=req.MinDistance;
     sh_data.countTime=req.countTime;
@@ -120,7 +138,8 @@ void calculate_shakeHand(){
 
     }
     //发布握手完成信号（超时）或（达到晃动次数要求与无力矩感应）
-    if(sh_data.timer_noMove > 500 ||((sh_data.timer_noMove > 50)&&(sh_data.shakeCount>=sh_data.countTime))){
+    if(sh_data.timer_noMove > 300 ||((sh_data.timer_noMove > 50)&&(sh_data.shakeCount>=sh_data.countTime))){
+        cout<<"握手完成"<<endl;
         hirop_msgs::shakeHandStatus msg;
         msg.shakeHand_count=sh_data.shakeCount;
         msg.shakeHand_over=true;
@@ -183,7 +202,7 @@ int main(int argc, char *argv[])
         ROS_ERROR_STREAM(e.what());
         return -1;
     }
-    move_group->setStartState(*move_group->getCurrentState());
+//    move_group->setStartState(*move_group->getCurrentState());
     step=0;
     count_time=0;
     initforce= false;
@@ -199,22 +218,6 @@ int main(int argc, char *argv[])
     ros::Subscriber robot_XYZPose_sub=node.subscribe("force_bridge/robotPose", 1,robotPose_XYZ_CB);
     ROS_INFO_STREAM("shakeHandJudge init over");
 
-    std::thread t([&] {
-        while (ros::ok() && (!ros::isShuttingDown())) {
-            usleep(1000 * 100);
-            stamped = move_group->getCurrentPose("link6");
-            sh_data.CurRobotPose[0] = stamped.pose.position.x;
-            sh_data.CurRobotPose[1] = stamped.pose.position.y;
-            sh_data.CurRobotPose[2] = stamped.pose.position.z;
-            if (!sh_data.recordInitPose) {
-                sh_data.initRobotPose[0] = stamped.pose.position.x;
-                sh_data.initRobotPose[1] = stamped.pose.position.y;
-                sh_data.initRobotPose[2] = stamped.pose.position.z;
-                sh_data.recordInitPose = true;
-            }
-        }
-    });
-    t.detach();
 //    shakeHand_begin=true;
     while(ros::ok()&&(!ros::isShuttingDown()))
     {

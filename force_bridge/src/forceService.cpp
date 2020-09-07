@@ -238,6 +238,8 @@ bool forceService::initKinematic() {
 
 bool forceService::impedenceStartCB(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res) {
     if(is_running == false &&StartImpedenceCtl()){
+        robot_status_sub=Node->subscribe<industrial_msgs::RobotStatus>("robot_status",1,boost::bind(&forceService::robotStausCallback,this,_1));
+
         res.success = true;
     } else{
         res.success = false;
@@ -283,7 +285,7 @@ void forceService::robotStausCallback(const industrial_msgs::RobotStatusConstPtr
     if(msg->in_error.val != 0 || msg->drives_powered.val!=1 ){
         robot_servo_status = false;
 //        std::cout << "msg->in_motion.val : "<< std::to_string(msg->in_motion.val) << " msg->in_error.val: "<<  std::to_string(msg->in_error.val)<<std::endl;
-//        robot_status_sub.shutdown();
+        robot_status_sub.shutdown();
     }else {
         robot_servo_status = true;
     }

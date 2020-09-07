@@ -9,7 +9,6 @@ VoiceCtlRobTask::VoiceCtlRobTask(const string &taskName)
     isStop= false;
     isErr= false;
     VCRRF=new VoiceCtlRobRosFunc(getRosHandler());
-
 }
 
 void VoiceCtlRobTask::init()
@@ -47,6 +46,7 @@ bool VoiceCtlRobTask::registerTaskList()
     auto func_Wave_quiting = std::bind(&VoiceCtlRobTask::Wave_quiting, this, placeholders::_1);
     auto func_DetectToy_initing = std::bind(&VoiceCtlRobTask::DetectToy_initing, this, placeholders::_1);
     auto func_DetectToy_quiting = std::bind(&VoiceCtlRobTask::DetectToy_quiting, this, placeholders::_1);
+    auto func_DetectToy_toExit = std::bind(&VoiceCtlRobTask::DetectToy_toExit, this, placeholders::_1);
     auto func_grabToy_initing = std::bind(&VoiceCtlRobTask::grabToy_initing, this, placeholders::_1);
     auto func_grabToy_quiting = std::bind(&VoiceCtlRobTask::grabToy_quiting, this, placeholders::_1);
     auto func_dealErr_initing= std::bind(&VoiceCtlRobTask::dealErr_initing, this, placeholders::_1);
@@ -72,6 +72,15 @@ bool VoiceCtlRobTask::registerTaskList()
         registerTask("init","initing", func_init_initing);//to---prepare
         registerTask("init","quiting", func_init_quiting);
         registerTask("test", "initing",[&](const std::vector<std::string> &args){
+//
+//            string name ="toy1";
+//            if(VCRRF->detect(name)!=0){
+//                cout<<"识别错误"<<endl;
+//                VCRRF->RobGoHome();
+//                return;
+//            }
+//            return;
+
             VCRRF->RobGoHome();
 //            VCRRF->detectPose();
 //            VCRRF->RobGoHome();
@@ -79,25 +88,25 @@ bool VoiceCtlRobTask::registerTaskList()
             VCRRF->RobGoHome();
 //            VCRRF->wave();
             return;
-            string name ="toy1";
-            VCRRF->detect(name);
-            sleep(5);
-            geometry_msgs::PoseStamped a =VCRRF->getStateMonitor().object_pose;
-            if(a.header.frame_id != "world"){
-                cout<<"转换失败"<<endl;
-                return;
-            }
-            if(VCRRF->pick(a)!=0){
-                cout<<"抓取失败"<<endl;
-                return;
-            }
-
-            geometry_msgs::PoseStamped b = VCRRF->placeObjPose[0];
-            if(VCRRF->place(b)!=0){
-                cout<<"放置失败"<<endl;
-                return;
-            }
-            VCRRF->RobGoHome();
+//            string name ="toy1";
+//            VCRRF->detect(name);
+//            sleep(5);
+//            geometry_msgs::PoseStamped a =VCRRF->getStateMonitor().object_pose;
+//            if(a.header.frame_id != "world"){
+//                cout<<"转换失败"<<endl;
+//                return;
+//            }
+//            if(VCRRF->pick(a)!=0){
+//                cout<<"抓取失败"<<endl;
+//                return;
+//            }
+//
+//            geometry_msgs::PoseStamped b = VCRRF->placeObjPose[0];
+//            if(VCRRF->place(b)!=0){
+//                cout<<"放置失败"<<endl;
+//                return;
+//            }
+//            VCRRF->RobGoHome();
 //            cout << "i: " << i << endl;
 //        }
         });
@@ -114,6 +123,7 @@ bool VoiceCtlRobTask::registerTaskList()
         registerTask("wave","quiting", func_Wave_quiting);
         registerTask("detectToy","initing",func_DetectToy_initing);//to---grabToy
         registerTask("detectToy","quiting",func_DetectToy_quiting);
+        registerTask("detectToy","toExittoExit",func_DetectToy_toExit);
 
         registerTask("grabToy","initing",func_grabToy_initing);//to---detection
         registerTask("grabToy","quiting",func_grabToy_quiting);
@@ -185,7 +195,7 @@ void VoiceCtlRobTask::transPrepare2detection(const vector<std::string> &args) {
     publishStateMsg(true,"start","-----prepare_start------");
     //打开声音
     cout<<"打开声音"<<endl;
-    VCRRF->VoiceDetect_Switch(true);
+//    VCRRF->VoiceDetect_Switch(true);
     //打开行人检测
     cout<<"打开行人检测 "<<endl;
     VCRRF->PersonDetect_Switch(true);
@@ -210,16 +220,20 @@ void VoiceCtlRobTask::Detection_initing(const std::vector<std::string> &args) {
     {
         sleep(1);
     //
-        if(VCRRF->getStateMonitor().hasPeople == 0){
-            VCRRF->set_hasVoiceOder(-1);
-            cout<<"没有行人"<<endl;
-        }
-    //0.没有行人10s&&有行人标志&&没有握手任务标志---->并挥手并回原点
+//        if(VCRRF->getStateMonitor().hasPeople == 0){
+//            VCRRF->set_hasVoiceOder(-1);
+//            cout<<"没有行人"<<endl;
+//        }
+
+        cout<<"haspeople "<<VCRRF->getStateMonitor().hasPeople<<endl;
+        cout<<"flag_hasPeople "<<flag_hasPeople<<endl;
+        cout<<"taskFlag_shakehand "<<VCRRF->getStateMonitor().isEnd_shakeHand<<endl;
+        //0.没有行人10s&&有行人标志&&没有握手任务标志---->并挥手并回原点
         if ((VCRRF->getStateMonitor().hasPeople == 0) &&(flag_hasPeople)&&(!taskFlag_shakehand))
         {
             count_time++;
             cout<<"没有人进行，计时:"<<count_time<<endl;
-            if(count_time>10)
+            if(count_time>30)
             {
                 flag_hasPeople= false;
                 setTaskState("wave");
@@ -254,25 +268,38 @@ void VoiceCtlRobTask::Detection_initing(const std::vector<std::string> &args) {
             return;
         }
         cout<<"detect "<<2<<endl;
-    //3.有行人&&有语音信号2&&没有握手任务标志--->进入握手状态
-        if ((VCRRF->getStateMonitor().hasPeople == 1) &&(!taskFlag_shakehand)&&(VCRRF->getStateMonitor().voice_order==2))
+    //3.有行人&&有语音信号3&&有握手任务标志-->进入抓娃娃状态
+        if ((taskFlag_shakehand)&&(VCRRF->getStateMonitor().voice_order==3))
         {
             taskFlag_shakehand= false;
-            setTaskState("shakehand");
+            VCRRF->closeImpedence();
+            //回原点
+            VCRRF->RobGoHome();
+            setTaskState("detectToy");
             isRun_detection=false;
             return;
         }
         cout<<"detect "<<3<<endl;
     //4.有行人&&有语音信号3&&没有握手任务标志-->进入抓娃娃状态
-        if ((VCRRF->getStateMonitor().hasPeople == 1) &&(!taskFlag_shakehand)&&(VCRRF->getStateMonitor().voice_order==3))
+        if ((!taskFlag_shakehand)&&(VCRRF->getStateMonitor().voice_order==3))
         {
             taskFlag_shakehand= false;
             setTaskState("detectToy");
             isRun_detection=false;
             return;
         }
+        cout<<"detect "<<4<<endl;
+
+    //5.有行人&&没有握手任务标志--->进入握手状态
+        if ((VCRRF->getStateMonitor().hasPeople == 1) &&(!taskFlag_shakehand))
+        {
+            taskFlag_shakehand= false;
+            setTaskState("shakehand");
+            isRun_detection=false;
+            return;
+        }
     }
-    cout<<"detect "<<4<<endl;
+    cout<<"detect "<<5<<endl;
     isRun_detection=false;
 }
 
@@ -419,14 +446,15 @@ void VoiceCtlRobTask::DetectToy_initing(const std::vector<std::string> &args) {
     publishStateMsg(true,"initing","-----detectToy_initing------");
     //去到检测点
     if(VCRRF->detectPose()!=0){
-        setTaskState("dealErr");
+        setTaskState("toExit");
         return;
     }
     //进行yolo6d识别
     string name ="toy1";
     if(VCRRF->detect(name)!=0){
         cout<<"识别错误"<<endl;
-        setTaskState("dealErr");
+        VCRRF->RobGoHome();
+        setTaskState("exit");
         return;
     }
     //等待识别到目标
@@ -447,6 +475,10 @@ void VoiceCtlRobTask::DetectToy_initing(const std::vector<std::string> &args) {
 
 void VoiceCtlRobTask::DetectToy_quiting(const std::vector<std::string> &args) {
     publishStateMsg(true,"quiting","-----detectToy_quiting------");
+}
+
+void VoiceCtlRobTask::DetectToy_toExit(const std::vector<std::string> &args) {
+    setTaskState("exit");
 }
 
 void VoiceCtlRobTask::transDetectToy2exit(const std::vector<std::string> &args) {
