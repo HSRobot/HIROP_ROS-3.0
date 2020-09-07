@@ -36,6 +36,9 @@ namespace HsFsm {
 
             VoiceCtlRobRosFunc* VCRRF;
 
+            bool flag_AutoMode= true;
+            bool taskFlag_shakehand= false;
+            bool flag_hasPeople= false;
             atomic<bool > isStop;
             atomic<bool > isErr;
             atomic<bool > isRun_init;
@@ -49,12 +52,13 @@ namespace HsFsm {
             ros::Subscriber people_detect_sub;
 
     private:
-        void threadForSwithState(const char* state);
+        void SetModeToSwithState(const char* state);
         void publishStateMsg(bool status,std::string behevior,std::string meassage);
         //状态行为函数
         void init_initing(const std::vector<std::string> &args);
         void init_quiting(const std::vector<std::string> &args);
         void prepare_initing(const std::vector<std::string> &args);
+        void prepare_quiting(const std::vector<std::string> &args);
         void Detection_initing(const std::vector<std::string> &args);
         void Detection_quiting(const std::vector<std::string> &args);
         void Shakehand_initing(const std::vector<std::string> &args);

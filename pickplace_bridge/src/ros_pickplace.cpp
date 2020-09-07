@@ -46,6 +46,10 @@ int PickPlaceService::start()
     /****/
     groupConfig(move_group_config_path_);
     this->pickplacePtr->setMoveGroup();
+    double v, a;
+    n_pick.param("vel", v, 0.1);
+    n_pick.param("acc", a, 0.1);
+    this->pickplacePtr->setVelocityAccelerated(v, a);
     return 0;
 }
 

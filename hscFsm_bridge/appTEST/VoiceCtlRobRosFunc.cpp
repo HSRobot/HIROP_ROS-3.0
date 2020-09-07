@@ -1,6 +1,7 @@
 #include "VoiceCtlRobRosFunc.h"
 
 VoiceCtlRobRosFunc::VoiceCtlRobRosFunc(ros::NodeHandle *node):Node(node) {
+    initStateMonitor();
     initRosToptic();
 }
 
@@ -64,9 +65,23 @@ void VoiceCtlRobRosFunc::initRosToptic(){
 
     Node->param("/handgesture", handgestureFile, std::string("handgesturePose"));
     Node->param("/home", homeFile, std::string("homePose"));
+    Node->param("/detection", detectionFile, std::string("detecctionJointPose"));
+    Node->param("/wave", waveFile, std::string("wavePose"));
+    Node->param("/PlacePose", palceObjFile, std::string("PlacePose"));
 
     loadRobotPose(handgesturePose, handgestureFile);
     loadRobotPose(HomeJointsPose, homeFile);
+    loadRobotPose(wavePose, waveFile);
+    loadRobotPose(detectionPose, detectionFile);
+    loadRobotPose(placeObjPose, palceObjFile);
+
+    sigleAxisClient = Node->serviceClient<hirop_msgs::moveSigleAixs>("motion_bridge/SigleAixs");
+    sigleAxisPlannerClient = Node->serviceClient<hirop_msgs::incrementAngle>("/trajectory_planner/sigleIncrementAngle");
+    detectClient = Node->serviceClient<hirop_msgs::detection>("/detection");
+    pickClient = Node->serviceClient<hirop_msgs::Pick>("pickplace_bridge/pick");
+    placeClient = Node->serviceClient<hirop_msgs::Place>("pickplace_bridge/place");
+    fiveFingerSeqClient = Node->serviceClient<hirop_msgs::moveSeqIndex>("/moveSeq");
+    objSub = Node->subscribe("/object_array", 10, &VoiceCtlRobRosFunc::objSubCB, this);
 
     // 接受者
     rosTopicHd.rbCtlBusy_subscriber=Node->subscribe<std_msgs::Bool>("rbCtlBusy_status",1,&VoiceCtlRobRosFunc::callback_rbCtlBusy_status_subscriber, this);
@@ -77,7 +92,6 @@ void VoiceCtlRobRosFunc::initRosToptic(){
     rosTopicHd.voice_order_sub = Node->subscribe("/voice_order", 1, &VoiceCtlRobRosFunc::voice_order_CallBack, this);
     rosTopicHd.people_detect_sub = Node->subscribe("/pedestrian_detection", 1, &VoiceCtlRobRosFunc::people_detect_CallBack, this);
     rosTopicHd.shakehandstatus_sub = Node->subscribe("shakeHandJudge/Status", 1, &VoiceCtlRobRosFunc::shakehandstatus_CallBack, this);
-
 
 }
 
@@ -171,20 +185,13 @@ bool VoiceCtlRobRosFunc::transformFrame(geometry_msgs::PoseStamped& poseStamped,
         }
     }
     poseStamped = worldFramePose[0];
+    poseStamped.pose.position.z=1.2;
     poseStamped.pose.orientation.x = 0;
     poseStamped.pose.orientation.y = 0;
     poseStamped.pose.orientation.z = 0;
     poseStamped.pose.orientation.w = 1;
     delete[] worldFramePose;
     delete[] otherFramePose;
-    double add[3] = {0};
-    Node->getParam("/grasp_place/position_x_add", add[0]);
-    Node->getParam("/grasp_place/position_y_add", add[1]);
-    Node->getParam("/grasp_place/position_z_add", add[2]);
-
-    poseStamped.pose.position.x += add[0];
-    poseStamped.pose.position.y += add[1];
-    poseStamped.pose.position.z += add[2];
     if(poseStamped.header.frame_id == "world")
     {
         return true;
@@ -221,6 +228,9 @@ int VoiceCtlRobRosFunc::robGotoShakeHandPose(){
 
 int VoiceCtlRobRosFunc::startImpedence(){
     cout<<"开启阻抗"<<endl;
+//    system("rosservice call /set_robot_enable \"enable: false\"");
+//    sleep(1);
+//    system("rosservice call /set_robot_enable \"enable: true\"");
     //设置随动模式
     hsr_rosi_device::setModeSrv srv_SetMode;
     srv_SetMode.request.mode = 1;
@@ -238,9 +248,9 @@ int VoiceCtlRobRosFunc::startImpedence(){
         return -1;
     }
     hirop_msgs::shakeHandSet srv_shakeset;
-    srv_shakeset.request.MaxDistance=0.05;
-    srv_shakeset.request.MinDistance=0.01;
-    srv_shakeset.request.countTime=2;
+    srv_shakeset.request.MaxDistance=0.1;
+    srv_shakeset.request.MinDistance=0.05;
+    srv_shakeset.request.countTime=1;
     rosTopicHd.startShakeHandJudge_client.call(srv_shakeset);
     //打开阻抗
     std_srvs::SetBool srv_startImp;
@@ -254,16 +264,18 @@ int VoiceCtlRobRosFunc::startImpedence(){
     }else{
         ROS_INFO("open impedence failed ");
     }
-    cout<<"阻抗开启结束"<<endl;
+    cout<<"阻抗开启完毕"<<endl;
     return 0;
 }
 
 int VoiceCtlRobRosFunc::closeImpedence() {
-    //关闭阻抗
+    //1.关闭握手计数
     cout<<"关闭阻抗"<<endl;
+    //关闭握手计数辅助节点
     std_srvs::SetBool srv_end;
     srv_end.request.data=true;
     rosTopicHd.closeShakeHandJudge_client.call(srv_end);
+    //2.关闭阻抗
     std_srvs::SetBool srv_CloseImp;
     srv_CloseImp.request.data=true;
     if(rosTopicHd.CloseImpedence_client.call(srv_CloseImp)){
@@ -275,7 +287,10 @@ int VoiceCtlRobRosFunc::closeImpedence() {
         cout<<"CloseImpedence_client服务连接失败"<<endl;
         return -1;
     }
-
+    //3.stop_motion
+    sleep(1);
+    system("rosservice call /stop_motion ");
+    //4.设置模式0
     hsr_rosi_device::setModeSrv srv_SetMode;
     srv_SetMode.request.mode=0;
     if(rosTopicHd.RobSetMode_client.call(srv_SetMode)){
@@ -285,95 +300,6 @@ int VoiceCtlRobRosFunc::closeImpedence() {
         cout<<"模式设置服务连接失败"<<endl;
         return -1;
     }
-    system("rosservice call /stop_motion ");
-    return 0;
-}
-
-int VoiceCtlRobRosFunc::robGotoPhotoPose(){
-    if(RobGoHome()){
-        cout<<"回原点成功"<<endl;
-    } else
-    {
-        cout<<"回原点失败"<<endl;
-        return -1 ;
-    }
-
-    rb_msgAndSrv::rb_DoubleBool  dSrv;
-    dSrv.request.request = true;
-    if(!rosTopicHd.detectePointClient.call(dSrv))
-    {
-        ROS_INFO_STREAM("check handClaw_detectDoll server");
-        return -1;
-    }
-    else
-    {
-        if(dSrv.response.respond)
-        {
-            ROS_INFO_STREAM("move to detete point SUCCESS");
-        }
-        else
-        {
-            ROS_INFO("move to detect point FAILURE");
-            return -1;
-        }
-    }
-    return 0;
-}
-
-int VoiceCtlRobRosFunc::detectToy(){
-    hirop_msgs::detection d;
-    d.request.detectorName = "Yolo6d";
-    d.request.detectorType = 1;
-    //d.request.objectName = "bluerabbit";
-    d.request.objectName = "toy1";
-
-    if(rosTopicHd.detectionClient.call(d))
-    {
-        if(d.response.result==0){
-            cout<<"识别成功"<<endl;
-        }else
-        {
-            cout<<"识别失败"<<endl;
-            return -1;
-        }
-    }else
-    {
-        cout<<"detectionClient服务连接失败"<<endl;
-        return -1;
-    }
-
-    return 0;
-}
-
-int VoiceCtlRobRosFunc::robGrabToy() {
-    // /*************************************************************************/
-    // pick_place_bridge::PickPlacePose srv;
-    // srv.request.Pose = statemonitor.object_pose;
-    // std::cout << "<- objectCallBack ShakeReult Z "<<srv.request.Pose.pose.position.z<<std::endl;
-
-    // if(srv.request.Pose.pose.position.z < 1.1){
-    //     cout<<"轨迹规划点位过低,请检测";
-    //     return -1;
-    // }
-    // rosTopicHd.pickServer_client.call(srv);
-    // if(srv.response.result != true){
-    //     std::cout << "planning pick error  ---"<<std::endl;
-    //     return -1;
-    // }
-    // ROS_INFO_STREAM("****************************************************");
-    // /*******************************/
-    // srv.request.Pose.pose.position.x = 0.95;
-    // srv.request.Pose.pose.position.y = -0.45;
-    // srv.request.Pose.pose.position.z = 1.51;
-    // srv.request.Pose.pose.orientation.x = 0;
-    // srv.request.Pose.pose.orientation.y = 0;
-    // srv.request.Pose.pose.orientation.z = 0;
-    // srv.request.Pose.pose.orientation.w = 1;
-    // rosTopicHd.placeServer_client.call(srv);
-    // if(srv.response.result != true){
-    //     std::cout << "place pick error  ---"<<std::endl;
-    //     return -1;
-    // }
     return 0;
 }
 
@@ -383,6 +309,7 @@ int VoiceCtlRobRosFunc::RobGoHome(){
     {
         flag = movePose(HomeJointsPose);
     }
+    setfiveFingerIndex(HOME_INDEX);
     return flag;
 }
 
@@ -408,22 +335,9 @@ void VoiceCtlRobRosFunc::initStateMonitor(){
     statemonitor.hasPeople= 0;
     geometry_msgs::PoseStamped stamped;
     statemonitor.object_pose=stamped;
-}
+    statemonitor.detectOk= false;
 
-int VoiceCtlRobRosFunc::startShakeHandJudge() {
-    hirop_msgs::shakeHandSet srv;
-    srv.request.MaxDistance=0.04;
-    srv.request.MinDistance=0.005;
-    srv.request.countTime=2;
-    rosTopicHd.startShakeHandJudge_client.call(srv);
-    return 0;
-}
 
-int VoiceCtlRobRosFunc::closeShakeHandJudge() {
-    std_srvs::SetBool srv;
-    srv.request.data=true;
-    rosTopicHd.closeShakeHandJudge_client.call(srv);
-    return 0;
 }
 
 void VoiceCtlRobRosFunc::PersonDetect_Switch(bool flag) {
@@ -638,6 +552,173 @@ int VoiceCtlRobRosFunc::motionMulti(moveit_msgs::RobotTrajectory& tra)
          }
      }
     return flag;
+}
+
+int VoiceCtlRobRosFunc::wave() {
+    int flag = -1;
+    setfiveFingerIndex(HOME_INDEX);
+    if(!wavePose.empty())
+    {
+        if(movePose(wavePose) == 0)
+        {
+            std::vector<double> incrementAngle = {-20, 40, -40, 20};
+            std::vector<std::string> index = {"joint4", "joint4", "joint4", "joint4"};
+            if(sigleAxisPlanner(incrementAngle, index) == 0)
+            {
+                moveit_msgs::RobotTrajectory tra;
+                if (getTrajectory(tra) == 0)
+                {
+                    flag = motionMulti(tra);
+                }
+            }
+        }
+    }
+    return flag;
+}
+
+int VoiceCtlRobRosFunc::sigleAxisPlanner(std::vector<double>& incrementAngle, std::vector<std::string>& index) {
+    int flag = 0;
+    hirop_msgs::incrementAngle srv;
+    srv.request.incrementAngle = incrementAngle;
+    srv.request.index = index;
+    if(sigleAxisPlannerClient.call(srv))
+    {
+        if(srv.response.result != 0)
+        {
+            ROS_INFO("planning failed");
+            flag = -1;
+        }
+    }
+    else
+    {
+        ROS_INFO("check planner service");
+        flag =  -1;
+    }
+    return flag;
+}
+
+int VoiceCtlRobRosFunc::setfiveFingerIndex(const int &index) {
+    int flag = -1;
+    hirop_msgs::moveSeqIndex srv;
+    srv.request.index = index;
+    if(fiveFingerSeqClient.call(srv))
+    {
+        if(srv.response.sucesss)
+        {
+            flag = 0;
+        }
+    }
+    return flag;
+}
+
+void VoiceCtlRobRosFunc::resetfunction() {
+
+    //关闭阻抗
+    std_srvs::SetBool srv_CloseImp;
+    srv_CloseImp.request.data=true;
+    rosTopicHd.CloseImpedence_client.call(srv_CloseImp);
+    sleep(1);
+    //stopmotion
+    system("rosservice call /stop_motion ");
+    //关闭握手计数
+    std_srvs::SetBool srv_end;
+    srv_end.request.data=true;
+    rosTopicHd.closeShakeHandJudge_client.call(srv_end);
+}
+
+void VoiceCtlRobRosFunc::set_hasVoiceOder(int value) {
+    statemonitor.voice_order = value;
+}
+
+int VoiceCtlRobRosFunc::OK() {
+    int flag = -1;
+    if(!OKPose.empty())
+    {
+        setfiveFingerIndex(OK_INDEX);
+        flag = movePose(OKPose);
+    }
+    return flag;
+}
+
+int VoiceCtlRobRosFunc::detectPose() {
+    int flag = -1;
+    if(!detectionPose.empty())
+    {
+        setfiveFingerIndex(TAKE_PHOTO_INDEX);
+        flag = movePose(detectionPose);
+    }
+    return flag;
+}
+
+int VoiceCtlRobRosFunc::detect(std::string& objName) {
+    int flag = 0;
+    cout<<"开始检测"<<endl;
+    hirop_msgs::detection det_srv;
+    det_srv.request.objectName = objName;
+    det_srv.request.detectorName = "Yolo6d";
+    det_srv.request.detectorType = 1;
+    det_srv.request.detectorConfig = "";
+    if(detectClient.call(det_srv))
+    {
+        if(det_srv.response.result != 0)
+        {
+            cout<<"识别错误"<<endl;
+            flag = -1;
+        }
+    }
+    else
+    {
+        flag = -1;
+    }
+    cout<<"检测完毕"<<endl;
+    return flag;
+}
+
+int VoiceCtlRobRosFunc::pick(geometry_msgs::PoseStamped &pose) {
+    int flag = 0;
+    hirop_msgs::Pick pickSrv;
+    pickSrv.request.pickPos = pose;
+    if(pickClient.call(pickSrv))
+    {
+        if(!pickSrv.response.isPickFinsh)
+        {
+            flag = -1;
+        }
+    }
+    else
+    {
+        flag = -1;
+    }
+    return flag;
+}
+
+int VoiceCtlRobRosFunc::place(geometry_msgs::PoseStamped &pose) {
+    int flag = 0;
+    hirop_msgs::Place placeSrv;
+    placeSrv.request.placePos = pose;
+    if(placeClient.call(placeSrv))
+    {
+        if(!placeSrv.response.isPlaceFinsh)
+        {
+            flag = -1;
+        }
+    }
+    else
+    {
+        flag = -1;
+    }
+    return flag;
+}
+
+void VoiceCtlRobRosFunc::objSubCB(const hirop_msgs::ObjectArrayConstPtr &msg) {
+    for(int i=0; i<msg->objects.size(); i++)
+    {
+        pickObjPoses.push_back(msg->objects[i].pose);
+        transformFrame(pickObjPoses[i], "world");
+    }
+    statemonitor.object_pose=pickObjPoses[0];
+    statemonitor.detectOk= true;
+    cout<<"接收到目标点"<<endl;
 }
 
 

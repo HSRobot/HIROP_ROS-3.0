@@ -28,26 +28,13 @@ bool PlanningBridge::singleAxisCB(hirop_msgs::incrementAngle::Request& req, hiro
 {
     bool flag;
     rep.result = planner->singleAxis(req.index, req.incrementAngle);
-    if(rep.result == 0)
-        flag = true;
-    else
-        flag = false;
-    return flag;
+	return true;
 }
 
 bool PlanningBridge::addCartesianPoseCB(hirop_msgs::addPose::Request& req, hirop_msgs::addPose::Response& rep)
 {
     rep.result = planner->addCartesianPose(req.pose, req.type);
-    bool flag;
-    if(rep.result == 0)
-    {
-        flag = true;
-    }
-    else
-    {
-        flag = false;
-    }
-    return flag;
+    return true;
 }
 
 bool PlanningBridge::addJointPoseCB(hirop_msgs::addJointPose::Request& req, hirop_msgs::addJointPose::Response& rep)
@@ -60,16 +47,7 @@ bool PlanningBridge::addJointPoseCB(hirop_msgs::addJointPose::Request& req, hiro
         joints[i] = req.joints[i].joint;
     }
     rep.result = planner->addJointPose(joints);
-    bool flag;
-    if(rep.result == 0)
-    {
-        flag = true;
-    }
-    else
-    {
-        flag = false;
-    }
-    return flag;
+    return true;
 }
 
 bool PlanningBridge::updateParamCB(hirop_msgs::updateParam::Request& req, hirop_msgs::updateParam::Response& rep)
@@ -84,7 +62,7 @@ bool PlanningBridge::updateParamCB(hirop_msgs::updateParam::Request& req, hirop_
     {
         rep.result = false;
     }
-    return rep.result;
+    return true;
 }
 
 bool PlanningBridge::getTrajectoryCB(hirop_msgs::getTrajectory::Request& req, hirop_msgs::getTrajectory::Response& rep)

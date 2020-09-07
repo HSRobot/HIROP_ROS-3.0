@@ -213,6 +213,7 @@ void DetectorService::onDetectDone(std::string detector, int ret, std::vector<po
     }
     tfLock.unlock();
     posePub.publish(msg);
+    
 
     if(preImg.size <= 0)
         return;

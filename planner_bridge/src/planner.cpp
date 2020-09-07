@@ -70,7 +70,7 @@ int Planner::addCartesianPose(std::vector<geometry_msgs::PoseStamped>& poses, st
     moveit_msgs::RobotTrajectory midTra;
     getStitchingTrajectory(midTra);
     AdjustTrajectory(midTra);
-    return 0;
+    return flag;
 }
 
 int Planner::setPathConstraints(std::string file)

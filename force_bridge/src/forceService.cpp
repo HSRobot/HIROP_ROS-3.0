@@ -102,7 +102,19 @@ bool forceService::StartImpedenceCtl() {
 
 void forceService::impdenceErrThreadRun()
 {
-//    static auto start = std::chrono::system_clock::now();
+
+    while (!robot_servo_status){
+        if(is_stop)
+        {
+            is_running= false;
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+//     static auto start = std::chrono::system_clock::now();
+
+
     auto nextTime = std::chrono::system_clock::now();
 
     while(ros::ok()&&(!is_stop)&&(!ros::isShuttingDown())&&(robot_servo_status))
@@ -118,8 +130,9 @@ void forceService::impdenceErrThreadRun()
         std::vector<double> outJoint;
         geometry_msgs::Pose outPose;
         if(computeImpedence(out_dealForce, outJoint,outPose)!=0){
-            continue;
-//            return -1;
+//            continue;
+            cout<<"<---------------IK err  exit----------------->"<<endl;
+            return ;
         }
 //        outPose.position=MG.move_group->getCurrentPose(MG.endlinkName).pose.position;
         //发布位姿
@@ -131,6 +144,8 @@ void forceService::impdenceErrThreadRun()
         std:this_thread::sleep_until(nextTime );
 //        start = std::chrono::system_clock::now();
     }
+    cout<<"<---------------sevo  exit------------------------------>"<<endl;
+
     is_running= false;
 
 }
@@ -267,8 +282,8 @@ void forceService::robotStausCallback(const industrial_msgs::RobotStatusConstPtr
 //    if(msg->in_error.val != 0 || msg->in_motion.val != 0 ){
     if(msg->in_error.val != 0 || msg->drives_powered.val!=1 ){
         robot_servo_status = false;
-        std::cout << "msg->in_motion.val : "<< std::to_string(msg->in_motion.val) << " msg->in_error.val: "<<  std::to_string(msg->in_error.val)<<std::endl;
-        robot_status_sub.shutdown();
+//        std::cout << "msg->in_motion.val : "<< std::to_string(msg->in_motion.val) << " msg->in_error.val: "<<  std::to_string(msg->in_error.val)<<std::endl;
+//        robot_status_sub.shutdown();
     }else {
         robot_servo_status = true;
     }

@@ -1,3 +1,4 @@
+#include <atomic>
 #include <iostream>
 #include "ros/ros.h"
 #include "hirop_msgs/shakeHandSet.h"
@@ -5,7 +6,9 @@
 #include "std_srvs/SetBool.h"
 #include "geometry_msgs/Wrench.h"
 #include "geometry_msgs/Pose.h"
+#include "moveit/move_group_interface/move_group_interface.h"
 #include "atomic"
+#include <thread>
 using namespace std;
 
 struct shakeHand{
@@ -23,14 +26,16 @@ struct shakeHand{
 };
 
 //全局变量
+moveit::planning_interface::MoveGroupInterface* move_group;
 shakeHand sh_data; //controller para
 int step;//0:等待握手检测，1:进行握手检测
 bool shakeHand_begin=false;
 bool shakeHand_end= false;
 double diff=0.0;
-bool initforce=false;
+atomic<bool> initforce;
 ros::Publisher shakeHandStatus_pub;//发布握手状态
-
+geometry_msgs::PoseStamped stamped;
+atomic<int > count_time;
 
 //服务回调函数 0.04,0.005,3
 bool shakeHand_beginCB(hirop_msgs::shakeHandSet::Request &req, hirop_msgs::shakeHandSet::Response &res){
@@ -75,9 +80,14 @@ void calculate_shakeHand(){
     double tmp_Distance = sqrt( pow((fabs(sh_data.initRobotPose[2]-sh_data.CurRobotPose[2])),2));
     std::cout << "<------------ cal the distance is "<< tmp_Distance<<std::endl;
 //    ROS_INFO_STREAM("<------------  shakeStatus is "<< sh_data.shakeStatus<< " sh_data.countTime is "<<sh_data.countTime);
+    count_time++;
+    if(count_time>50){
+        count_time=0;
+        initforce= false;
+    }
 
     // no force control
-    if( cul_forceDiff()< 20){
+    if( cul_forceDiff()< 8){
         cout<<"检测到没有力矩"<<endl;
         sh_data.timer_noMove++;
     }else{
@@ -167,7 +177,16 @@ int main(int argc, char *argv[])
     as.start();
     //初始化变量
     ros::Rate rate(10);//10hz
+    try{
+        move_group = new moveit::planning_interface::MoveGroupInterface("arm");
+    }catch(std::runtime_error &e){
+        ROS_ERROR_STREAM(e.what());
+        return -1;
+    }
+    move_group->setStartState(*move_group->getCurrentState());
     step=0;
+    count_time=0;
+    initforce= false;
     //初始化服务与话题
     //设置最大距离，最小距离，握手摆动次数
     ros::ServiceServer bringUp_server = node.advertiseService("shakeHandJudge/begin", shakeHand_beginCB);
@@ -179,6 +198,24 @@ int main(int argc, char *argv[])
     //机器人坐标点接收
     ros::Subscriber robot_XYZPose_sub=node.subscribe("force_bridge/robotPose", 1,robotPose_XYZ_CB);
     ROS_INFO_STREAM("shakeHandJudge init over");
+
+    std::thread t([&] {
+        while (ros::ok() && (!ros::isShuttingDown())) {
+            usleep(1000 * 100);
+            stamped = move_group->getCurrentPose("link6");
+            sh_data.CurRobotPose[0] = stamped.pose.position.x;
+            sh_data.CurRobotPose[1] = stamped.pose.position.y;
+            sh_data.CurRobotPose[2] = stamped.pose.position.z;
+            if (!sh_data.recordInitPose) {
+                sh_data.initRobotPose[0] = stamped.pose.position.x;
+                sh_data.initRobotPose[1] = stamped.pose.position.y;
+                sh_data.initRobotPose[2] = stamped.pose.position.z;
+                sh_data.recordInitPose = true;
+            }
+        }
+    });
+    t.detach();
+//    shakeHand_begin=true;
     while(ros::ok()&&(!ros::isShuttingDown()))
     {
         //等待启动握手检测服务
