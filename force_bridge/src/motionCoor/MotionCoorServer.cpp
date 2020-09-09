@@ -18,6 +18,7 @@ MotionCoorServer::MotionCoorServer(ros::NodeHandle &nh)
 
 void MotionCoorServer::start()
 {
+    ROS_INFO_STREAM("MotionCoorServer start....");
     ros::MultiThreadedSpinner ms(1);
     ms.spin();
 }

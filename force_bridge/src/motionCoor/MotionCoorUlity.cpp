@@ -100,6 +100,12 @@ int MotionCoorUlity::getSize()
     return jointDataQue->size();
 }
 
+double MotionCoorUlity::getTimeLength()
+{
+    double endTime = oldTimeSeq.at(oldTimeSeq.size()-1);
+    return  endTime;
+}
+
 void MotionCoorUlity::timeCompute()
 {
     assert(curMsg.points.size() > 0);

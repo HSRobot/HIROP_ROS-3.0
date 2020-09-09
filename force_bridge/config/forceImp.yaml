@@ -1,9 +1,10 @@
 parameters:
   algorithm_name : hsImpenderrForce
   # 接受力矩传感器数据并进行缩放 force_x ,force_y,force_z
-  revForceScale: [0.075,0.08,0.075]
+  revForceScale: [0.075,0.08,0.075,1, 1, 1]
   # 阻抗方向使能 笛卡尔X,Y,Z方向
-  forceDrectionEnable: [true,false,true]
+  forceDrectionEnable: [false,false,true,false,false,false]
+
   # 阻抗算法参数设置
   # Stiffness: [60.0, 30.0, 30.0, 30.0, 30.0, 30.0] #刚性系数
   # Damping: [5., 5., 5., 5., 5., 5.] #阻尼系数

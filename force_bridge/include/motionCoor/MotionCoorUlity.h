@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <queue>
+#include <FakeForceSensor.h>
 using namespace tk;
 
 struct ImpandenceJointData
@@ -38,7 +39,7 @@ struct ImpandenceJointData
             std::array<double, 6>  arr = jointQue.front();
 
             vec.resize(6);
-            std::copy(arr.begin(), arr.end()-1, vec.begin());
+            std::copy(arr.begin(), arr.begin()+6, vec.begin());
             jointQue.pop();
             return true;
 
@@ -84,6 +85,15 @@ public:
      * @return
      */
     int getSize();
+
+    double getTimeLength();
+
+    // x y z w A B C
+    static void  QtoE(double q1, double q2, double q3, double q0, double& A, double &B, double &C){
+        A = atan2(2*(q0*q1+q2*q3),1-2*(q1*q1+q2*q2));
+        B = asin(2*(q0*q2-q1*q3));
+        C = atan2(2*(q0*q3+q1*q2),1-2*(q2*q2+q3*q3));
+    }
 private:
     void timeCompute();
 private:

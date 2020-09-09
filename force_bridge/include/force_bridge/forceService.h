@@ -29,7 +29,7 @@
 #include <hirop_msgs/ImpedenceAdjustStart.h>
 #include <hirop_msgs/ImpedenceAdjustStop.h>
 #include <MotionCoorUlity.h>
-
+#include <FakeForceSensor.h>
 
 using namespace std;
 
@@ -97,6 +97,7 @@ private:
     boost::shared_ptr<MotionCoorUlity> motionCoorPtr;
     ros::ServiceClient stopMotionSer;
 
+    boost::shared_ptr<FakeForceSensor> fakeSensor;
 public:
 
     /**
@@ -256,7 +257,9 @@ private:
      * @brief debugImpendXa 打印 增量
      * @param XA
      */
-    void debugImpendXa(std::vector<double> &XA);
+    void debugImpendXa(const std::vector<double> &XA);
+
+    void addImpendBiasZYX(geometry_msgs::Pose &computePose, const std::vector<double> &XA);
 };
 
 

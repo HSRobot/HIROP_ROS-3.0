@@ -7,6 +7,7 @@ motion::motion(ros::NodeHandle* node):Node(node){
     ass_flag_rightRbMotion=false;
     ass_flag_RbMotion=false;
 
+    pub_rob  =Node->advertise<trajectory_msgs::JointTrajectory>("/plan/joint_path_command",1);
     pub_robLeft  =Node->advertise<trajectory_msgs::JointTrajectory>("/UR51/joint_path_command",1);
     pub_robRight =Node->advertise<trajectory_msgs::JointTrajectory>("/UR52/joint_path_command",1);
     pub_sigrob =Node->advertise<trajectory_msgs::JointTrajectory>("/joint_path_command",1);
@@ -124,29 +125,7 @@ bool motion::sigRobMotion(hirop_msgs::dualRbtraject::Request &req, hirop_msgs::d
     tempTraject.joint_trajectory=req.robotMotionTraject_list[0].robot_jointTra;
     res.is_success = trajectPlainExec(tempTraject, MoveGroupList[0]);
 
-    // bool RbMotion=false;
-    // ass_flag_RbMotion= false;
-    // ROS_INFO_STREAM(req.robotMotionTraject_list[0].robot_jointTra.points.size());
-    // pub_sigrob.publish(req.robotMotionTraject_list[0].robot_jointTra);
 
-    // //启动监听
-    // int count=0;
-    // while(!ass_flag_RbMotion){
-    //     usleep(100);
-    //     count++;
-    //     if(count>10000*10){
-    //         ass_flag_RbMotion=true;
-    //         ROS_INFO_STREAM("timer is ok");
-    //     }
-    // }
-
-    // ROS_INFO_STREAM(" motion running");
-    // bool isstop= false;
-    // isstop= false;
-    // while(!isstop){
-    //     isstop=MoveGroupList[0].motion_val==0;
-    //     usleep(100);
-    // }
     ROS_INFO_STREAM("motion run over");
 
 
@@ -173,7 +152,8 @@ int motion::trajectPlan(moveit_msgs::RobotTrajectory &tempTraject, MoveGroup& MG
     moveit::planning_interface::MoveItErrorCode status;
     if(sim)
     {
-        status = MG.move_group->plan(plan);
+//        status = MG.move_group->plan(plan);
+        pub_rob.publish(tempTraject.joint_trajectory);
     }else{
         status = MG.move_group->execute(plan);
     }
@@ -395,51 +375,14 @@ bool motion::moveLineCB(hirop_msgs::moveLine::Request &req, hirop_msgs::moveLine
         res.info="此move_group找不到";
         return true;
     }
-    MoveGroupList[robot_num].move_group->setStartStateToCurrentState();
-    //1.获取当前位姿
-    startPos= MoveGroupList[robot_num].move_group->getCurrentJointValues();
-    assert( startPos.size() == 6 );
+    geometry_msgs::PoseStamped SPose = MoveGroupList[robot_num].move_group->getCurrentPose(std::string("link6"));
+    SPose.pose.position.x += req.Cartesian_x;
+    SPose.pose.position.y += req.Cartesian_y;
+    SPose.pose.position.z += req.Cartesian_z;
 
-    MoveGroupList[robot_num].kinematic_state->setJointGroupPositions(MoveGroupList[robot_num].joint_model_group, startPos);
-    const Eigen::Affine3d &end_effector_state = MoveGroupList[robot_num].kinematic_state->getGlobalLinkTransform(MoveGroupList[robot_num].endlinkName);
-    geometry_msgs::Pose SPose;//末端位姿
-    tf::poseEigenToMsg(end_effector_state, SPose);
-
-    //2.更新下一点三维坐标值
-    geometry_msgs::Pose pose;
-    pose.position=SPose.position;
-    pose.orientation=SPose.orientation;
-    pose.position.x+=req.Cartesian_x;
-    pose.position.y+=req.Cartesian_y;
-    pose.position.z+=req.Cartesian_z;
-    ROS_INFO_STREAM(pose);
-
-//    pose.position.x+=0.1;
-//    pose.position.y+=0.1;
-//    pose.position.z+=0.1;
-    //3.运动学逆解得到关节值
-    vector<double > joint_pose;
-    vector<double> vector_pose = MoveGroupList[robot_num].move_group->getCurrentJointValues();
-
-    cout<<"当前关节角[0]"<<vector_pose[0]<<endl;
-    cout<<"当前关节角[1]"<<vector_pose[1]<<endl;
-    cout<<"当前关节角[2]"<<vector_pose[2]<<endl;
-    cout<<"当前关节角[3]"<<vector_pose[3]<<endl;
-    cout<<"当前关节角[4]"<<vector_pose[4]<<endl;
-    cout<<"当前关节角[5]"<<vector_pose[5]<<endl;
-    // robot_inverse(SPose,joint_pose);
-    if(!robot_inverse(MoveGroupList[robot_num],pose,joint_pose)){
-        res.is_success=false;
-        return true;
-    }
-    cout<<"逆解后[0]"<<joint_pose[0]<<endl;
-    cout<<"逆解后[1]"<<joint_pose[1]<<endl;
-    cout<<"逆解后[2]"<<joint_pose[2]<<endl;
-    cout<<"逆解后[3]"<<joint_pose[3]<<endl;
-    cout<<"逆解后[4]"<<joint_pose[4]<<endl;
-    cout<<"逆解后[5]"<<joint_pose[5]<<endl;
-
-    res.is_success=trajectPreparePtp(joint_pose,MoveGroupList[robot_num], false)==0;
+    double radio = 0;
+    res.is_success=trajectPrepareLine(SPose.pose, MoveGroupList[robot_num], &radio,req.isSim)==0;
+    res.info = std::to_string(radio);
     return true;
 }
 
@@ -686,6 +629,29 @@ int motion::createTrajectPlan(moveit_msgs::RobotTrajectory &tempTraject,moveit::
     ROS_INFO_STREAM("spline.computeTimeStamps sucess ");
     rt.getRobotTrajectoryMsg(tempTraject);
 
+}
+
+int motion::trajectPrepareLine(const geometry_msgs::Pose &end , MoveGroup& MG, double *radio,bool sim)
+{
+    std::vector<string> jointName = MG.move_group->getJointNames();
+    moveit_msgs::RobotTrajectory tempTraject;
+    tempTraject.joint_trajectory.joint_names = std::move(jointName);
+    tempTraject.joint_trajectory.points.clear();
+
+//    geometry_msgs::PoseStamped currentPose = MG.move_group->getCurrentPose();
+    vector<geometry_msgs::Pose> LGroup;
+//    LGroup.push_back(currentPose.pose);
+
+
+    LGroup.push_back(end);
+    MG.move_group->setMaxVelocityScalingFactor(1);
+    *radio = MG.move_group->computeCartesianPath(LGroup, 0.04, 0., tempTraject, false);
+    if( *radio < 0.6)
+    {
+        return -2;
+    }
+
+    return trajectPlan(tempTraject, MG,sim);
 }
 
 

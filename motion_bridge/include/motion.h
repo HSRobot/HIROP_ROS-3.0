@@ -82,7 +82,7 @@ private:
 
     ros::Publisher pub_robLeft;
     ros::Publisher pub_robRight;
-    ros::Publisher pub_sigrob;
+    ros::Publisher pub_sigrob , pub_rob;
     ros::Subscriber rb0_robotstatus_subscriber;
     ros::Subscriber rb1_robotstatus_subscriber;
     ros::Subscriber robotstatus_subscriber;
@@ -150,6 +150,9 @@ private:
     void setStartState(moveit::planning_interface::MoveGroupInterface & ptr);
 
     int createTrajectPlan(moveit_msgs::RobotTrajectory &tempTraject,moveit::planning_interface::MoveGroupInterface & ptr, const string & groupName);
+
+private:
+   int trajectPrepareLine(const geometry_msgs::Pose &end , MoveGroup& MG, double *radio,bool sim = false);
 
 };
 

@@ -9,6 +9,8 @@ forceService::forceService(ros::NodeHandle* n):mode(Impenderr) {
     force_plugin = new forcePluginAggre();
     motionCoorPtr  = boost::make_shared<MotionCoorUlity>();
     is_running = false;
+
+    fakeSensor = boost::make_shared<FakeForceSensor>();
 }
 
 forceService::~forceService() {
@@ -33,7 +35,7 @@ int forceService::start() {
 
 //初始化参数
 int forceService::initParam() {
-    int ret=0;
+    int ret = 0 ;
     Node->param("/force_bridge/group_name",MG.groupName, string("arm"));
     Node->param("/force_bridge/endlinkName",MG.endlinkName,string("link6"));
     Node->param("/force_bridge/isSim",isSim,false);
@@ -97,7 +99,7 @@ bool forceService::StartImpedenceCtl() {
     MG.kinematic_state->setJointGroupPositions( MG.joint_model_group, startPos);
     if(isSim)
     {
-        robot_servo_status=true;
+        robot_servo_status = true;
         publishPose(startPos);
     }
     else
@@ -202,6 +204,13 @@ int forceService::IKCompute(const geometry_msgs::Pose &current_Pose, std::vector
     MG.kinematic_state->copyJointGroupPositions(MG.joint_model_group, joint_values);
 
     outJoint =  std::move(joint_values);
+
+    cout<<"点位执行关节 outJoint : ";
+    for (size_t i = 0; i < 6; i++)
+    {
+        cout<<outJoint[i] *180 /M_PI<<" ";
+    }
+    std::cout <<endl;
     return 0;
 }
 
@@ -224,11 +233,11 @@ int forceService::readLocalParam() {
     YAML::Node yaml_node=YAML::LoadFile(configFile_path);
     //参数解析
     yamlPara_forceScale=yaml_node["parameters"]["revForceScale"].as<vector<double >>();
-    if (yamlPara_forceScale.size()!=3){
+    if (yamlPara_forceScale.size()!= 6 ){
         return -1;
     }
     yamlPara_forceDrection=yaml_node["parameters"]["forceDrectionEnable"].as<vector<bool >>();
-    if (yamlPara_forceScale.size()!=3){
+    if (yamlPara_forceScale.size()!= 6){
         return -2;
     }
     safetyAreaScope.resize(3);
@@ -315,6 +324,10 @@ bool forceService::impedenceStartCB(hirop_msgs::ImpedenceAdjustStartRequest &req
             res.result = false;
             return true;
         }
+#ifndef REAL_FORCE
+        fakeSensor->setTimeLength(motionCoorPtr->getTimeLength());
+        fakeSensor->setForceEnable(yamlPara_forceDrection);
+#endif
     }
     res.result = true;
 
@@ -342,9 +355,9 @@ void forceService::forceCallbackXZ(const geometry_msgs::Wrench::ConstPtr &msg) {
     currentForce[0] = msg->force.x * yamlPara_forceScale[0] ;
     currentForce[1] = -msg->force.y * yamlPara_forceScale[1];
     currentForce[2] = -msg->force.z * yamlPara_forceScale[2];
-    currentForce[3] = 0;
-    currentForce[4] = 0;
-    currentForce[5] = 0;
+    currentForce[3] = -msg->torque.x * yamlPara_forceScale[3];
+    currentForce[4] = msg->torque.y * yamlPara_forceScale[4];
+    currentForce[5] = -msg->torque.z * yamlPara_forceScale[5];
 }
 
 void forceService::forceCallbackZX(const geometry_msgs::Wrench_<allocator<void>>::ConstPtr &msg) {
@@ -395,12 +408,14 @@ void forceService::publishPose(std::vector<double> &joint_Pose) {
     compute_robot_state.position = joint_Pose;
     //ROS_INFO_STREAM(compute_robot_state);
     //运动点打印
-    vector<double> tmp(6);
-    for (size_t i = 0; i < 6; i++)
-    {
-        tmp[i]=compute_robot_state.position[i]*180/M_PI;
-        cout<<"点位执行关节"<<i<<"角度值: "<<compute_robot_state.position[i]*180/M_PI<<endl;;
-    }
+//    array<double, 6> tmp;
+//    cout<<"点位执行关节: ";
+//    for (size_t i = 0; i < 6; i++)
+//    {
+//        tmp[i]=compute_robot_state.position[i]*180/M_PI;
+//        cout<<tmp[i]<<" ";
+//    }
+//    std::cout <<endl;
 
     // if(tmp[1]<=-72){
     //     cout<<"轴2非安全点"<<endl;
@@ -418,8 +433,8 @@ void forceService::publishPose(std::vector<double> &joint_Pose) {
 
 //    while(true)
 //    {
-            joint_state_pub->msg_ = compute_robot_state;
-            joint_state_pub->unlockAndPublish();
+        joint_state_pub->msg_ = compute_robot_state;
+        joint_state_pub->unlockAndPublish();
 //            break;
 //        }
 //    }
@@ -471,6 +486,12 @@ int forceService::computeAdjustImpedence(std::vector<double> &nextPose, std::vec
     geometry_msgs::Pose current_Pose;
     FKComputePose(nextPose, current_Pose);
 
+//    cout<<"<--------------------------->"<<endl;
+    cout<<"计算点位前 的关节给定量 : ";
+    for(int i =0 ; i< 6 ;i++)
+        std::cout << nextPose[i]*180/M_PI <<" ";
+    std::cout <<std::endl;
+
     //2.
     vector<double> Xa{0,0,0,0,0,0};
     computeImpedence(force, Xa);
@@ -483,17 +504,22 @@ int forceService::computeAdjustImpedence(std::vector<double> &nextPose, std::vec
     computePose.position.y+=Xa[1];
     computePose.position.z+=Xa[2];
 
+    //欧拉角偏执
+    addImpendBiasZYX(computePose, Xa);
+
     outPose = std::move(computePose);
-    return IKCompute(computePose, outJoint);
+    return IKCompute(outPose, outJoint);
 }
 
-void forceService::debugImpendXa(std::vector<double> &XA)
+void forceService::debugImpendXa(const std::vector<double> &XA)
 {
-    cout<<"<--------------------------->"<<endl;
-    cout<<"计算得偏移量X_offset: "<<XA[0]<<endl;
-    cout<<"计算得偏移量y_offset: "<<XA[1]<<endl;
-    cout<<"计算得偏移量z_offset: "<<XA[2]<<endl;
+//    cout<<"<--------------------------->"<<endl;
+    cout<<"计算得偏移量_offset: ";
+    for(int i =0 ; i< 6 ;i++)
+        std::cout << XA[i] <<" ";
+    std::cout <<std::endl;
 }
+
 
 int forceService::computeImpedence(std::vector<double> &force, std::vector<double> &outBiasJoint )
 {
@@ -502,54 +528,25 @@ int forceService::computeImpedence(std::vector<double> &force, std::vector<doubl
     vector<double > tmp_pose{0,0,0,0,0,0}, Xa;
     force_plugin->setInputRobotPose(tmp_pose);
     force_plugin->setInputForceBias(force);
-    cout<<"Force 1: "<<force[0]<<endl;
-    cout<<"Force 2: "<<force[1]<<endl;
-    cout<<"Force 3: "<<force[2]<<endl;
 
-    static geometry_msgs::Pose current_Pose;
-    getCurrentPose(current_Pose);
+    cout<<"Force : ";
+    for( int i = 0; i< 6; i++)
+    {
+        cout<<force[i]<<"  ";
+    }
+    cout<<endl;
 
-
-    int i = force_plugin->compute();
+    force_plugin->compute();
     force_plugin->getResult(Xa);
     //位移量控制
-    const double protectXValue = -0.04;
-    if(Xa[0]>=yamlPara_MaxVel_x){
-        Xa[0]=yamlPara_MaxVel_x;
-    }else if(Xa[0]<= protectXValue){
-        Xa[0]= protectXValue;
-    }
-
-//    if(Xa[1]>=yamlPara_MaxVel_y){
-//        Xa[1]=yamlPara_MaxVel_y;
-//    }else if(Xa[1]<= -1*yamlPara_MaxVel_y){
-//        Xa[1]=-1*yamlPara_MaxVel_y;
+//    const double protectXValue = -0.04;
+//    if(Xa[0]>=yamlPara_MaxVel_x){
+//        Xa[0]=yamlPara_MaxVel_x;
+//    }else if(Xa[0]<= protectXValue){
+//        Xa[0]= protectXValue;
 //    }
 
-//    if(Xa[2]>=yamlPara_MaxVel_z){
-//        Xa[2]=yamlPara_MaxVel_z;
-//    }else if(Xa[2]<= -1*yamlPara_MaxVel_z){
-//        Xa[2]=-1*yamlPara_MaxVel_z;
-//    }
-
-//    double diff=0;
-    std::vector<double> joint_values;
-//    vector<double > curJoint;
-    static geometry_msgs::Pose computePose;
-    //3.位姿补偿计算
-
-    computePose = current_Pose;
-    computePose.position.x+=Xa[0];
-    computePose.position.y+=Xa[1];
-    computePose.position.z+=Xa[2];
-
-
-
-    // 返回计算后的关节角
-    MG.kinematic_state->copyJointGroupPositions(MG.joint_model_group, joint_values);
-    //关节角偏移量
-
-    outBiasJoint =  std::move(joint_values);
+    outBiasJoint =  std::move(Xa);
     return 0;
 }
 
@@ -559,17 +556,26 @@ void forceService::forceDataDeal(const vector<double >& original_force,vector<do
     std::fill(tmp_deal_force.begin(),tmp_deal_force.begin()+6,0);
 
     if(!flag_SetForceBias){
-        bias_force=currentForce;
-        flag_SetForceBias=true;
+        bias_force = currentForce;
+        flag_SetForceBias = true;
     }
 
     //只管X,Y,Z三个方向力矩
-    for (int i = 0; i <3; ++i) {
+
+
+    for (int i = 0; i < yamlPara_forceDrection.size(); ++i) {
         if(yamlPara_forceDrection[i]){
-            tmp_deal_force[i]=original_force[i]-bias_force[i];
+#ifdef REAL_FORCE
+            tmp_deal_force[i] = original_force[i]-bias_force[i];
+//            tmp_deal_force[i] = original_force[i] - 0; //测试代码
+#else
+            vector<double> fakeValue;
+            fakeSensor->getForceVal(fakeValue);
+            tmp_deal_force[i]  = fakeValue[i];
+#endif
         }
     }
-    deal_force=tmp_deal_force;
+    deal_force= std::move(tmp_deal_force);
 }
 
 bool forceService::force_algorithmChangeCB(hirop_msgs::force_algorithmChange::Request &req,
@@ -579,3 +585,36 @@ bool forceService::force_algorithmChangeCB(hirop_msgs::force_algorithmChange::Re
     return true;
 }
 
+void forceService::addImpendBiasZYX(geometry_msgs::Pose &computePose, const std::vector<double> &XA)
+{
+//    MotionCoorUlity::QtoE(computePose.orientation.x, computePose.orientation.y, computePose.orientation.z, computePose.orientation.w, A, B, C);
+//    std::cout <<"compute offset pose: "<< X_offset<<" "<< Y_offset<<" "<< Z_offset<<" "<< A_offset<<" "<< B_offset<<" "<< C_offset<<" "<<std::endl;
+
+//    std::cout << "计算前的 ABC "<< A<<" "<< B<<" "<< C<<" "<<std::endl;
+
+     std::cout <<"计算前的 姿态: "<< computePose.orientation.w<<" "<< computePose.orientation.x<<" "\
+              << computePose.orientation.y   <<" "<<computePose.orientation.z<<" "<<std::endl;
+
+
+    // 偏移 calucation
+//    A += XA[3]; B += XA[4]; B += XA[5];
+//     偏移后RPY转四元数
+    tf::Quaternion q, q0;
+    tf::quaternionMsgToTF( computePose.orientation, q);
+
+    double R, P, Y;
+    tf::Matrix3x3(q).getEulerZYX(Y, P, R);
+    std::cout << "计算前的 Z Y X "<< Y<<" "<< P<<" "<< R<<" "<<std::endl;
+
+    Y += XA[3]; P += XA[4]; R -= XA[5];
+
+    std::cout << "计算后的 Z Y X "<< Y<<" "<< P<<" "<< R<<" "<<std::endl;
+
+    q0.setEulerZYX(Y, P, R);
+//    tf::Vector3 axis = q0.getAxis();
+
+    computePose.orientation.x = q0.getX();computePose.orientation.y = q0.getY();
+    computePose.orientation.z = q0.getZ();computePose.orientation.w = q0.getW();
+    std::cout <<"计算后的 姿态: "<< computePose.orientation.w<<" "<< computePose.orientation.x<<" "\
+             << computePose.orientation.y   <<" "<<computePose.orientation.z<<" "<<std::endl;
+}
