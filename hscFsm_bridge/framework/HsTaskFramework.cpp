@@ -3,13 +3,12 @@ using namespace HsFsm;
 #include <functional>
 
 using namespace std;
-std::shared_ptr<semaphore> HsTaskFramework::notitySem = nullptr;
+//std::shared_ptr<semaphore> HsTaskFramework::notitySem = nullptr;
 HsFsm::State HsTaskFramework::currentState;
 HsTaskFramework::HsTaskFramework()
 {
     fsmStack = std::make_shared<fsm::stack>();
-    threadpool = std::make_shared<ThreadPool>(4);
-
+//    threadpool = std::make_shared<ThreadPool>(2);
 }
 
 HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFramework> &fsm):typeCode(0),taskRunStatus(false)
@@ -20,12 +19,13 @@ HsTaskFramework::HsTaskFramework(ros::NodeHandle &nh, std::shared_ptr<HsTaskFram
     this->notitySem = std::make_shared<semaphore>(fsm->taskName);
     this->threadpool = std::make_shared<ThreadPool>(4);
     this->mode = Auto;
+    this->taskName = fsm->taskName;
 }
 
 void HsTaskFramework::init()
 {
 
-    framework->init();
+    framework.lock()->init();
     setInitState();
 
 }
@@ -39,7 +39,7 @@ bool HsTaskFramework::setCommand(const CmdInputData &cmd)
 
 void HsTaskFramework::quit()
 {
-    framework->quit();
+    framework.lock()->quit();
     setExitingAction();
 
 }
@@ -51,7 +51,7 @@ State HsTaskFramework::getState()
 
 bool HsTaskFramework::registerTaskList()
 {
-    return framework->registerTaskList();
+    return framework.lock()->registerTaskList();
 }
 
 void HsTaskFramework::waitRecall()
@@ -66,7 +66,7 @@ string HsTaskFramework::getTaskName()
 
 void HsTaskFramework::debugTaskList()
 {
-    std::cout <<fsmStack.get();
+    std::cout <<this->fsmStack.get();
 }
 
 void HsTaskFramework::setMode(Mode mode)
@@ -101,7 +101,12 @@ void HsTaskFramework::notityRecall()
     notitySem->signal();
 }
 
-
+/**
+ * @brief HsFsm::HsTaskFramework::registerTask
+ * @param state
+ * @param behevior
+ * @param call
+ */
 void HsFsm::HsTaskFramework::registerTask( HsFsm::state state, HsFsm::action behevior, HsFsm::call call)
 {
 
@@ -128,17 +133,19 @@ void HsTaskFramework::setTaskState(HsFsm::state state)
         threadpool->enqueue(&fsm::stack::set, fsmStack.get(), state );
         break;
     case Manual:
+    {
         string current = string(state);
         if(current == "init" ){
             std::cout << "Skip the state ..... "<<std::endl;
             break;
         }
         threadpool->enqueue(&fsm::stack::set, fsmStack.get(), "Middle" );
+     }
         break;
     default:
         break;
     }
-21
+
 }
 
 void HsTaskFramework::setInitState()
@@ -163,3 +170,6 @@ ros::NodeHandle *HsTaskFramework::getRosHandler()
 {
     return &nh;
 }
+
+H_EXPORT_PLUGIN(HsTaskFramework, "HsTaskFramework" , "1.0")
+

@@ -7,10 +7,11 @@
 using namespace HsFsm;
 typedef std::pair<string, int> elment;
 
-PickPlaceTask::PickPlaceTask(const string &taskName)
+PickPlaceTask::PickPlaceTask()
 {
-    this->taskName = taskName;
+    this->taskName = "PickPlaceTask";
 }
+
 
 void PickPlaceTask::init()
 {
@@ -35,7 +36,6 @@ bool PickPlaceTask::registerTaskList()
     try{
         auto cb1 = std::bind(&PickPlaceTask::transInit2Run, this, \
                             placeholders::_1);
-        //        registerTask("init","initing", cb1);
 
 
         //init --> prepare --> running --> quit
@@ -70,12 +70,16 @@ bool PickPlaceTask::registerTaskList()
         registerTask("quit", "initing", [&](callParm  &parm){
                 std::cout << "enter quit state, behaviour: initing" << std::endl;
                 timerRun = false;
+
+                //stop_motion
+
                 notityRecall();
         });
 
         //prepare initing quiting
         registerTask("prepare","initing", [&](callParm  &parm){
                 std::cout << "enter prepare state, behaviour: initing" << std::endl;
+                //                move()
         });
 
 
@@ -91,7 +95,7 @@ bool PickPlaceTask::registerTaskList()
                 timerRun = true;
 
                 State sta;
-                sta.meassage = {"1111111111111111"};
+                sta.meassage = {" "};
                 sta.status = 1;
 
                 std::cout << "Ready to shake_hand or grasp_toy!Please have a choice!" << std::endl;
@@ -122,9 +126,7 @@ bool PickPlaceTask::registerTaskList()
                             std::cout << "running ... "<<std::endl;
                             ros::Duration(0.5).sleep();
                         }
-
 //                         setTaskState("quit");
-
 
          });
 
@@ -165,3 +167,5 @@ void PickPlaceTask::shake_hand_order_CallBack(const std_msgs::Int16::ConstPtr & 
     if (voice_order == 0)
         setTaskState("init");
 }
+
+H_EXPORT_PLUGIN(PickPlaceTask, "PickPlaceTask" , "1.0")

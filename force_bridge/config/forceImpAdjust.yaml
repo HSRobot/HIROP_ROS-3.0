@@ -3,7 +3,7 @@ parameters:
   # 接受力矩传感器数据并进行缩放 force_x ,force_y,force_z
   revForceScale: [0.075,0.08,1, 4 ,4, 4]
   # 阻抗方向使能 笛卡尔X,Y,Z方向
-  forceDrectionEnable: [false,false,true,true,true,false]
+  forceDrectionEnable: [false,false,true,true,false,false]
 
   # 阻抗算法参数设置
   # Stiffness: [10.0, 30.0, 10.0, 10.0, 10.0, 30.0] #刚性系数

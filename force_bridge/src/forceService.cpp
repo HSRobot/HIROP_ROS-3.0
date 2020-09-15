@@ -4,6 +4,9 @@
 
 #include <chrono>
 #include <thread>
+#define REAL_FORCE 1
+#define PUBPOSE_HZ 40
+
 forceService::forceService(ros::NodeHandle* n):mode(Impenderr) {
     Node = n;
     force_plugin = new forcePluginAggre();
@@ -475,6 +478,9 @@ int forceService::computeImpedenceAndResult(std::vector<double> &force, std::vec
     computePose.position.y+=Xa[1];
     computePose.position.z+=Xa[2];
 
+    //欧拉角偏执
+    addImpendBiasZYX(computePose, Xa);
+
     outPose = std::move(computePose);
     return IKCompute(computePose, outJoint);
 }
@@ -606,8 +612,12 @@ void forceService::addImpendBiasZYX(geometry_msgs::Pose &computePose, const std:
     tf::Matrix3x3(q).getEulerZYX(Y, P, R);
     std::cout << "计算前的 Z Y X "<< Y<<" "<< P<<" "<< R<<" "<<std::endl;
 
+    //主要控制 Roll
+#ifdef ZYX
     Y += XA[3]; P += XA[4]; R -= XA[5];
-
+#else
+    Y += XA[5]; P += XA[4]; R += XA[3];
+#endif
     std::cout << "计算后的 Z Y X "<< Y<<" "<< P<<" "<< R<<" "<<std::endl;
 
     q0.setEulerZYX(Y, P, R);

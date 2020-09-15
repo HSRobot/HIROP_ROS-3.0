@@ -1,0 +1,5 @@
+bool mode
+int32 taskId
+string taskName
+---
+bool result

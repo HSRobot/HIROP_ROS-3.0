@@ -6,10 +6,18 @@
 #include <atomic>
 #include <queue>
 #include <std_srvs/Trigger.h>
+#include "yaml-cpp/yaml.h"
+
 #include <std_srvs/Empty.h>
+#include <hirop_msgs/setFsmTask.h>
+#include <hirop_msgs/getFsmTaskList.h>
 using namespace std;
 using namespace HsFsm;
-
+enum FsmState{
+  ERROR = -2,
+  NOT_FSM_TASK = -1,
+  WARNING = -3,
+};
 class HsFsmBridge
 {
 public:
@@ -82,7 +90,16 @@ private:
      * @param res
      * @return
      */
-    bool getTaskListCb(std_srvs::EmptyRequest & req  ,  std_srvs::EmptyResponse & res);
+    bool getTaskListCb(hirop_msgs::getFsmTaskListRequest & req  ,  hirop_msgs::getFsmTaskListResponse & res);
+
+
+    /**
+     * @brief setTaskHandlerCB
+     * @param req
+     * @param res
+     * @return
+     */
+    bool setTaskHandlerCB(hirop_msgs::setFsmTaskRequest & req, hirop_msgs::setFsmTaskResponse &res);
 private:
 
     /**
@@ -94,6 +111,8 @@ private:
 
     ros::ServiceServer cmdServer,getStatusServer; //cmd server call
     ros::ServiceServer startTaskServer,stopTaskServer , getTaskListServer; //cmd server call
+
+    ros::ServiceServer  setTaskServer;
 
     ros::Publisher retPub; // cmd pub
 

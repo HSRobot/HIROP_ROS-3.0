@@ -33,7 +33,6 @@
 
 using namespace std;
 
-#define PUBPOSE_HZ 39
 
 enum ForceMode{
     Impenderr = 0,

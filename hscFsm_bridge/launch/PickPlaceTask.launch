@@ -1,0 +1,14 @@
+<launch>
+
+  <arg name="HsFsmBridgeName"    default="PickPlaceTask"/>
+  <arg name="TaskServer"    default="PickPlaceTaskServerCmd"/>
+  <arg name="TaskName"  default="PickPlaceTask"/>
+  <arg name="taskResTopName"  default="PickPlaceTaskResState"/>
+
+  <node pkg="HsFsmBridge" type="HsFsmBridge" name="${HsFsmBridgeName}" output="screen">
+     <param name="hsc3_robotIP" type="str" value="$(arg hsc3_robotIP)"/>
+     <param name="hsc3_robotPort" type="int" value="$(arg hsc3_robotPort)"/>
+  </node>
+
+</launch>
+

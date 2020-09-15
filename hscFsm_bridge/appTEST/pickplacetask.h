@@ -1,15 +1,15 @@
-#ifndef PICKPLACETASK_H
-#define PICKPLACETASK_H
+#pragma once
 
 #include <HsTaskFramework.h>
 #include <ros/ros.h>
 #include <std_msgs/Int16.h>
-namespace HsFsm {
+using namespace HsFsm;
 
 
 class PickPlaceTask :public HsTaskFramework
 {
 public:
+    PickPlaceTask();
     PickPlaceTask(const string &taskName);
 
     /**
@@ -42,5 +42,5 @@ private:
 };
 
 
-}
-#endif // PICKPLACETASK_H
+
+

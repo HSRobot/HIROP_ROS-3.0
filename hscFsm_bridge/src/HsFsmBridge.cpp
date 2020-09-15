@@ -1,7 +1,10 @@
 #include <HsFsmBridge.h>
-#include "VoiceCtlRobTask.h"
+//#include "VoiceCtlRobTask.h"
+#include <pickplacetask.h>
 #include <future>
 #include <hirop_msgs/taskCmdRet.h>
+#include "ros/package.h"
+#include <HsTaskFsmFactory.h>
 using namespace HsFsm;
 
 HsFsmBridge::HsFsmBridge(ros::NodeHandle &node):nh(node),loopStop(false),frameExist(false),running(false)
@@ -23,17 +26,20 @@ HsFsmBridge::HsFsmBridge(ros::NodeHandle &node):nh(node),loopStop(false),frameEx
     getTaskListServer = nh.advertiseService("getTaskList", &HsFsmBridge::getTaskListCb,this);
 
 
+
+    setTaskServer = nh.advertiseService("setTaskServer", &HsFsmBridge::setTaskHandlerCB,this);
+
     retPub = nh.advertise<hirop_msgs::taskCmdRet>(taskResTopName,1);
 
     // 加载子任务
-    loadTask();
+//    loadTask();
 
     // 启动循环判断
-    cmdCbThreadLoop();
+//    cmdCbThreadLoop();
 
     // 初始化子任务
-    initTask();
-    running = true;
+//    initTask();
+
 }
 
 void HsFsmBridge::start()
@@ -70,19 +76,26 @@ bool HsFsmBridge::getStatusCmdCB(std_srvs::EmptyRequest & req  , std_srvs::Empty
 
 bool HsFsmBridge::startTaskCmdCB(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
 {
-    if(!frameExist)
+    if(framework == nullptr)
         return false;
 
     if(!running)
         running = true;
     else{
-        ROS_ERROR_STREAM("Task is running... ");
+        ROS_ERROR_STREAM(framework->getTaskName()<<" Task is running... ");
         return false;
     }
-    // 初始化子任务
-    initTask();
+
     // 启动循环判断
     cmdCbThreadLoop();
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    // 初始化子任务
+    initTask();
+
+
+    running = true;
+
     res.success = 1;
     return true;
 }
@@ -97,15 +110,38 @@ bool HsFsmBridge::stopTaskCmdCB(std_srvs::TriggerRequest &req, std_srvs::Trigger
     return true;
 }
 
-bool HsFsmBridge::getTaskListCb(std_srvs::EmptyRequest &req,  std_srvs::EmptyResponse &res)
+bool HsFsmBridge::getTaskListCb(hirop_msgs::getFsmTaskListRequest & req  ,  hirop_msgs::getFsmTaskListResponse & res)
 {
-    framework->debugTaskList();
+//    framework->debugTaskList();
+    std::vector<string> temp = HsTaskFsmFactory::getClassPluginList();
+
+    res.taskList = temp;
     return true;
 }
 
+bool HsFsmBridge::setTaskHandlerCB(hirop_msgs::setFsmTaskRequest &req, hirop_msgs::setFsmTaskResponse &res)
+{
+    if(req.mode == false)
+    {
+        framework = HsTaskFsmFactory::createByTest(nh, req.taskId);
+    }else
+        framework = HsTaskFsmFactory::createByPlugin(nh, req.taskName);
+
+    if(framework == nullptr)
+    {
+        res.result = false;
+        return true;
+    }
+    ROS_INFO_STREAM("Framework name is : " << framework->getTaskName());
+
+    res.result = true;
+    return true;
+}
+
+
 void HsFsmBridge::cmdCbThreadLoop()
 {
-    if(framework ==nullptr)
+    if(framework == nullptr)
         return ;
 
     ROS_INFO_STREAM("ROS Task event cmdCbThreadLoop start ");
@@ -118,7 +154,6 @@ void HsFsmBridge::cmdCbThreadLoop()
     }
 
 
-//    auto loop = std::async(std::launch::async, [&]{
     std::thread t1([&]{
         while(!loopStop){
             if(inputCmdQue.size() == 0){
@@ -132,10 +167,8 @@ void HsFsmBridge::cmdCbThreadLoop()
         }
     });
 
-//    auto loop2 = std::async(std::launch::async,[&](){
     thread::id t2p;
     std::thread t2([&]{
-//        t2p = std::this_thread::get_id();
         while(!loopStop){
 
            framework->waitRecall();
@@ -187,10 +220,11 @@ void HsFsmBridge::loadTask()
 {
 //    taskName;
 //    framework = std::make_shared<HsFsm::PickPlaceTask>("pickplace");
-    std::shared_ptr<HsTaskFramework> ptr = std::make_shared<HsFsm::VoiceCtlRobTask>("VoiceCtlRob");
-    framework = std::make_shared<HsFsm::HsTaskFramework>(nh,ptr);
-    std::cout <<framework->getTaskName()<<std::endl;
-    frameExist = true;
+//    std::make_shared<HsFsm::VoiceCtlRobTask>("VoiceCtlRob");
+//    std::shared_ptr<HsTaskFramework> ptr = std::make_shared<HsFsm::PickPlaceTask>("PickPlaceTask");
+//    framework = std::make_shared<HsFsm::HsTaskFramework>(nh, ptr);
+//    std::cout <<framework->getTaskName()<<std::endl;
+//    frameExist = true;
 }
 
 void HsFsmBridge::unloadTask()
@@ -206,6 +240,7 @@ bool HsFsmBridge::initTask()
         return false;
     }
 
+//    std::this_thread::sleep_for(std::chrono::seconds(1));
     framework->init();
 
 }
