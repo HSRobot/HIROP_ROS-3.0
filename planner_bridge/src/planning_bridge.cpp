@@ -6,7 +6,7 @@ PlanningBridge::PlanningBridge(ros::NodeHandle& n)
     std::string move_group_name;
     std::string configFile;
     nh.param("move_group_name", move_group_name, std::string("arm"));
-    nh.param("config", configFile, std::string("config"));
+    nh.param("config", configFile, std::string("config2"));
     planner = new Planner(move_group_name);
     planner->updateParam(configFile);
     singleAxisServer = nh.advertiseService("sigleIncrementAngle", &PlanningBridge::singleAxisCB, this);
@@ -38,16 +38,7 @@ bool PlanningBridge::singleAxisCB(hirop_msgs::incrementAngle::Request& req, hiro
 bool PlanningBridge::addCartesianPoseCB(hirop_msgs::addPose::Request& req, hirop_msgs::addPose::Response& rep)
 {
     rep.result = planner->addCartesianPose(req.pose, req.type);
-    bool flag;
-    if(rep.result == 0)
-    {
-        flag = true;
-    }
-    else
-    {
-        flag = false;
-    }
-    return flag;
+    return true;
 }
 
 bool PlanningBridge::addJointPoseCB(hirop_msgs::addJointPose::Request& req, hirop_msgs::addJointPose::Response& rep)

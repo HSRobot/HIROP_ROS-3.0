@@ -61,53 +61,43 @@ public:
       */
      bool setCommand(const CmdInputData &cmd);
 
+
+     /**
+      * @brief waitRecall 等待任务完成的响应 阻塞式
+      */
+     void waitRecall() override;
+
+     /**
+      * @brief getTaskName 子任务的任务名称
+      * @return
+      */
+     std::string getTaskName() override;
+
+     /**
+      * @brief debugTaskList
+      */
+     void debugTaskList() override;
+
+     /**
+      * @brief setMode
+      * @param mode
+      */
+     virtual void setMode(Mode mode);
+
 protected:
-    /**
-     * @brief waitRecall 等待任务完成的响应 阻塞式
-     */
-    void waitRecall() override;
-
-    /**
-     * @brief getTaskName 子任务的任务名称
-     * @return
-     */
-    std::string getTaskName() override;
-
-
-    /**
-     * @brief debugTaskList
-     */
-    void debugTaskList() override;
-
-    /**
-     * @brief setMode
-     * @param mode
-     */
-    virtual void setMode(Mode mode);
-
-private:
-    /**
-     * @brief setCommandProxy
-     * @param behevior
-     * @return
-     */
-    bool setCommandProxy(const CmdInputData &cmd);
-
-
     /**
      * @brief notityRecall 结果状态反馈
      */
     void notityRecall();
 
 
-    void registerTask( HsFsm::state state, HsFsm::action behevior, HsFsm::call call);
-
-
     /**
-     * @brief getTaskState 会获取当前的任务状态 以及 错误码 任务名称
-     * @return
+     * @brief registerTask
+     * @param state
+     * @param behevior
+     * @param call
      */
-    State getTaskState();
+    void registerTask( HsFsm::state state, HsFsm::action behevior, HsFsm::call call);
 
 
     /**
@@ -115,16 +105,6 @@ private:
      * @param state
      */
     void setTaskState(HsFsm::state state);
-
-    /**
-     * @brief setInitState
-     */
-    void setInitState();
-
-    /**
-     * @brief setExitingAction 程序退出
-     */
-    void setExitingAction();
 
 
     /**
@@ -138,6 +118,37 @@ private:
      * @return
      */
     ros::NodeHandle* getRosHandler();
+
+
+
+private:
+    /**
+     * @brief setCommandProxy
+     * @param behevior
+     * @return
+     */
+    bool setCommandProxy(const CmdInputData &cmd);
+
+
+    /**
+     * @brief getTaskState 会获取当前的任务状态 以及 错误码 任务名称
+     * @return
+     */
+    State getTaskState();
+
+
+
+    /**
+     * @brief setInitState
+     */
+    void setInitState();
+
+    /**
+     * @brief setExitingAction 程序退出
+     */
+    void setExitingAction();
+
+
 
 protected:
     std::string taskName;

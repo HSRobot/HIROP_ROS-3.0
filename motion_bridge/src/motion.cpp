@@ -1,5 +1,5 @@
 #include "motion.h"
-
+#include <moveit_msgs/DisplayTrajectory.h>
 motion::motion(ros::NodeHandle* node):Node(node){
     generateMoveGroup("arm","link6");
 //    generateMoveGroup("arm1","link6")  ;
@@ -10,12 +10,14 @@ motion::motion(ros::NodeHandle* node):Node(node){
     pub_rob  =Node->advertise<trajectory_msgs::JointTrajectory>("/plan/joint_path_command",1);
     pub_robLeft  =Node->advertise<trajectory_msgs::JointTrajectory>("/UR51/joint_path_command",1);
     pub_robRight =Node->advertise<trajectory_msgs::JointTrajectory>("/UR52/joint_path_command",1);
-    pub_sigrob =Node->advertise<trajectory_msgs::JointTrajectory>("/joint_path_command",1);
+    pub_sigrob = Node->advertise<trajectory_msgs::JointTrajectory>("/joint_path_command",1);
+    pub_display = Node->advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path",1);
 
-    rb0_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/UR51/robot_status",1,boost::bind(&motion::callback_rob0Status_subscriber,this,_1));
-    rb1_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/UR52/robot_status",1,boost::bind(&motion::callback_rob1Status_subscriber,this,_1));
 
-    robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/robot_status",1,boost::bind(&motion::callback_robStatus_subscriber,this,_1));
+//    rb0_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/UR51/robot_status",1,boost::bind(&motion::callback_rob0Status_subscriber,this,_1));
+//    rb1_robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/UR52/robot_status",1,boost::bind(&motion::callback_rob1Status_subscriber,this,_1));
+
+//    robotstatus_subscriber=Node->subscribe<industrial_msgs::RobotStatus>("/robot_status",1,boost::bind(&motion::callback_robStatus_subscriber,this,_1));
 
     dualRobMotion_server=Node->advertiseService("motion_bridge/dualRobMotion_JointTraject", &motion::dualRobMotion, this);
     motionBridgeStart_server=Node->advertiseService("motion_bridge/motionBridgeStart", &motion::motionBridgeStartCB, this);
@@ -150,9 +152,16 @@ int motion::trajectPlan(moveit_msgs::RobotTrajectory &tempTraject, MoveGroup& MG
      plan.trajectory_ = tempTraject;
     rt.getRobotTrajectoryMsg(plan.trajectory_);
     moveit::planning_interface::MoveItErrorCode status;
-    if(sim)
+    if(false)
     {
 //        status = MG.move_group->plan(plan);
+        moveit_msgs::DisplayTrajectory disp;
+        disp.trajectory.push_back( tempTraject);
+//        disp._model_id_type = "arm";
+//        disp.Type
+//        disp.trajectory_start = rt;
+        pub_display.publish(disp);
+
         pub_rob.publish(tempTraject.joint_trajectory);
     }else{
         status = MG.move_group->execute(plan);
@@ -629,6 +638,12 @@ int motion::createTrajectPlan(moveit_msgs::RobotTrajectory &tempTraject,moveit::
     ROS_INFO_STREAM("spline.computeTimeStamps sucess ");
     rt.getRobotTrajectoryMsg(tempTraject);
 
+}
+
+void motion::start()
+{
+     ros::MultiThreadedSpinner sp(1);
+     sp.spin();
 }
 
 int motion::trajectPrepareLine(const geometry_msgs::Pose &end , MoveGroup& MG, double *radio,bool sim)

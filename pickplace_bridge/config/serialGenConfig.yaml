@@ -1,21 +1,21 @@
 parameters: 
-    sorting: false
+    sorting: true
     followPosture: 
       R: false
       P: false
-      Y: false
+      Y: true
     grabPosture: 
       DIR_R: 0
       DIR_P: 0
-      DIR_Y: 0
+      DIR_Y: -1.57
     grabOffset: 
       x: 0.0
       y: 0.0
-      z: 0.01
+      z: 0.0
     placePosture: 
       DIR_R: 0
       DIR_P: 0
-      DIR_Y: 0
+      DIR_Y: 1.57
     placeOffset: 
       x: 0
       y: 0

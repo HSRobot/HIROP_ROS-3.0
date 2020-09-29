@@ -32,9 +32,12 @@ int Planner::addJointPose(std::vector<std::vector<double> >& joints)
         setNextState(tra);
         midTrajectory.push_back(tra);
     }
-    moveit_msgs::RobotTrajectory midTra;
-    getStitchingTrajectory(midTra);
-    AdjustTrajectory(midTra);
+    if(flag == 0)
+    {
+        moveit_msgs::RobotTrajectory midTra;
+        getStitchingTrajectory(midTra);
+        AdjustTrajectory(midTra);
+    }
     return flag;
 }
 
@@ -67,10 +70,13 @@ int Planner::addCartesianPose(std::vector<geometry_msgs::PoseStamped>& poses, st
         setNextState(tra);
         midTrajectory.push_back(tra);
     }
-    moveit_msgs::RobotTrajectory midTra;
-    getStitchingTrajectory(midTra);
-    AdjustTrajectory(midTra);
-    return 0;
+    if(flag == 0)
+    {
+        moveit_msgs::RobotTrajectory midTra;
+        getStitchingTrajectory(midTra);
+        AdjustTrajectory(midTra);
+    }
+    return flag;
 }
 
 int Planner::setPathConstraints(std::string file)
@@ -125,7 +131,13 @@ int Planner::updateParam(std::string file)
 
 int Planner::getTrajectory(moveit_msgs::RobotTrajectory& tra)
 {
-    tra = targetTrajectory;
+    // moveit::planning_interface::MoveGroupInterface::Plan  plan;
+    // plan.trajectory_ = targetTrajectory[0];
+    // move_group->setStartStateToCurrentState();
+    // move_group->execute(plan);
+    // ROS_INFO_STREAM(targetTrajectory[0].joint_trajectory.points.size());
+    // ROS_INFO_STREAM(targetTrajectory[0].joint_trajectory);
+    tra = targetTrajectory[0];
     return 0;
 }
 
@@ -227,8 +239,11 @@ int Planner::AdjustTrajectory(moveit_msgs::RobotTrajectory& tra)
     trajectory_processing::IterativeParabolicTimeParameterization iptp;
     iptp.computeTimeStamps(rt, plannerConfig.velocityScalingFactor, plannerConfig.accelerationScalingFactor);
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-    // targetTrajectory.joint_trajectory.points.clear();
-    rt.getRobotTrajectoryMsg(targetTrajectory);
+    // std::vector<moveit_msgs::RobotTrajectory> tra2;
+    // tra2.resize(1);
+    std::vector<moveit_msgs::RobotTrajectory>().swap(targetTrajectory);
+    targetTrajectory.resize(1);
+    rt.getRobotTrajectoryMsg(targetTrajectory[0]);
     return 0;
 }
 

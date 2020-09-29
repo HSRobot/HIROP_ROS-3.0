@@ -17,8 +17,8 @@
 #include "std_msgs/Int8.h"
 #include "std_msgs/Int16.h"
 #include "std_msgs/Float32.h"
-#include "rb_msgAndSrv/rb_DoubleBool.h"
-#include "rb_msgAndSrv/rb_string.h"
+//#include "rb_msgAndSrv/rb_DoubleBool.h"
+//#include "rb_msgAndSrv/rb_string.h"
 #include "sensor_msgs/Image.h"
 // #include <cv_bridge/cv_bridge.h>
 #include "hsr_rosi_device/ClearFaultSrv.h"
@@ -32,7 +32,7 @@
 #include "hirop_msgs/shakeHandSet.h"
 #include "hirop_msgs/shakeHandStatus.h"
 #include "industrial_msgs/StopMotion.h"
-#include "rb_msgAndSrv/rb_EmptyAndInt.h"
+//#include "rb_msgAndSrv/rb_EmptyAndInt.h"
 #include "sensor_msgs/JointState.h"
 #include "std_srvs/SetBool.h"
 #include <moveit_msgs/RobotTrajectory.h>

@@ -31,7 +31,7 @@ private:
     LoadYaml* processingYaml;
     
     moveit::planning_interface::MoveGroupInterface* move_group;
-    moveit_msgs::RobotTrajectory targetTrajectory;
+    std::vector<moveit_msgs::RobotTrajectory> targetTrajectory;
     std::vector<moveit_msgs::RobotTrajectory> midTrajectory;
     
 public:

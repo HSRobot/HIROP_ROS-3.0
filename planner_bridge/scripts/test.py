@@ -29,6 +29,7 @@ if __name__=="__main__":
         #     motion_req.poseList_joints_angle.append()
         # print(motion_client(motion_req))
         print(len(rep.tarjectory.joint_trajectory.points))
+	# print(rep.tarjectory.joint_trajectory)
         print(arm.execute(rep))
         
 

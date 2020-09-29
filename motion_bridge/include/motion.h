@@ -56,6 +56,12 @@ public:
     motion(ros::NodeHandle* node);
 
 public:
+    /**
+     * @brief start
+     */
+    void start();
+
+
     //生成move_group
     void generateMoveGroup(string groupName,string endLinkName);
     //运动规划
@@ -82,7 +88,7 @@ private:
 
     ros::Publisher pub_robLeft;
     ros::Publisher pub_robRight;
-    ros::Publisher pub_sigrob , pub_rob;
+    ros::Publisher pub_sigrob , pub_rob,pub_display;
     ros::Subscriber rb0_robotstatus_subscriber;
     ros::Subscriber rb1_robotstatus_subscriber;
     ros::Subscriber robotstatus_subscriber;
@@ -150,6 +156,7 @@ private:
     void setStartState(moveit::planning_interface::MoveGroupInterface & ptr);
 
     int createTrajectPlan(moveit_msgs::RobotTrajectory &tempTraject,moveit::planning_interface::MoveGroupInterface & ptr, const string & groupName);
+
 
 private:
    int trajectPrepareLine(const geometry_msgs::Pose &end , MoveGroup& MG, double *radio,bool sim = false);

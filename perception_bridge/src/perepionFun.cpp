@@ -5,9 +5,11 @@
 #include "hirop/perception/PclFilterManageSingle.h"
 #include "hirop/perception/transformUltity.h"
 #include "pcl/common/io.h"
+#include "pcl/common/transforms.h"
 #include "sensor_msgs/PointCloud2.h"
 #include "pcl/conversions.h"
 #include "pcl_conversions/pcl_conversions.h"
+#include <pcl/filters/statistical_outlier_removal.h>
 #include <string>
 
 
@@ -32,7 +34,7 @@ pereptionFun::pereptionFun(ros::NodeHandle &n)
     node = n;
     havePointCloud = false;
 
-    node.param("pointCloudTopic", pclReceviTopicName,string("/kinect2/qhd/points"));
+    node.param("pointCloudTopic", pclReceviTopicName,string("/kinect2/hd/points"));
     node.param("referFrame", referFrame, string("/base_link"));
     node.param("baseFrame", baseFrame, string("/camera"));
     node.param("publishPclName", publishPclName, string("/filter_points"));
@@ -116,31 +118,58 @@ bool pereptionFun::lookPointCloudCB(hirop_msgs::LookPointCloud::Request &req,
     pcl_conversions::fromPCL(pcd_tmp, msg);
 #endif
 
-
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = cameraFrame;
     publishPclCloudPub.publish(msg);
+
+    /******离群点处理******/
+    pcl::PointCloud<TEMPPOINT>::Ptr cloud_filter_or(new pcl::PointCloud<TEMPPOINT>);
+    pcl::StatisticalOutlierRemoval<TEMPPOINT> outlier_removal_sor;
+    outlier_removal_sor.setInputCloud(point);
+	outlier_removal_sor.setMeanK(200); //K近邻搜索点个数
+	outlier_removal_sor.setStddevMulThresh(1.0); //标准差倍数
+	//outlier_removal_sor.setNegative(false); //保留未滤波点（内点）
+    outlier_removal_sor.setKeepOrganized(true);
+	outlier_removal_sor.filter(*cloud_filter_or);  //保存滤波结果到cloud_filter
+    /************************/
+
+    cloud_filter_or->width = 1;
+    cloud_filter_or->height = cloud_filter_or->points.size();
+
+    /**转换矩阵**/
+     pcl::PointCloud<TEMPPOINT>::Ptr cloud_trans(new pcl::PointCloud<TEMPPOINT>);
+    transformUltity::transformFrame("world", cameraFrame, T, R);
+    Eigen::Isometry3d trans_matrix = transformUltity::makeMatrix(T, R);
+    pcl::transformPointCloud(*cloud_filter_or, *cloud_trans, trans_matrix.matrix());
+    /*******/
 
     /**
       pcl转octomap
     */
     std::cout << "copy data into octomap..." << std::endl;
-    octomap::ColorOcTree tree( 0.03 );
+    octomap::ColorOcTree tree( 0.05 );
     tree.clear();
 
+    if (cloud_trans->size() == 0){
+        cout << "点云过滤后数量为0,无法八叉树化,请重新设置点云过滤配置参数" << endl;
+        return false;
+    }
+
     //将点云的点插入到八叉树种
-    for (auto p:*point.get()){
+    // for (auto p:*point.get()){
+    for (auto p:cloud_trans->points){
         tree.updateNode(octomap::point3d(p.x, p.y, p.z), true);
     }
 
     //设置颜色信息
-    for (auto p:*point.get()){
+    // for (auto p:*point.get()){
+    for (auto p:cloud_trans->points){
         tree.integrateNodeColor(p.x, p.y, p.z, p.r, p.g, p.b);
     }
 
     //更新octomap
     tree.updateInnerOccupancy();
-    tree.write("/home/fshs/catkin_ws/src/hirop_ros/perception_bridge/data/live_octomap.ot");
+    tree.write("/home/de/catkin_ws_v3/src/HIROP_ROS-3.0/perception_bridge/data/live_octomap.ot");
 
     //转换成octomap_msgs消息格式
     static octomap_msgs::Octomap octomap;
@@ -155,10 +184,11 @@ bool pereptionFun::lookPointCloudCB(hirop_msgs::LookPointCloud::Request &req,
     //planning_scene_world.octomap.octomap.data = octomap.data;
     //planning_scene_world.octomap.octomap.resolution = 0.05;
 
-	planning_scene.world.octomap.header.frame_id = "world";
+
     planning_scene.world.octomap.header.stamp = ros::Time::now();
-    planning_scene.world.octomap.octomap.header.frame_id = "world";
+	planning_scene.world.octomap.header.frame_id = "world";
     planning_scene.world.octomap.octomap.header.stamp = ros::Time::now();
+    planning_scene.world.octomap.octomap.header.frame_id = "world";
     planning_scene.world.octomap.octomap.binary = true;
     planning_scene.world.octomap.octomap.id = "OcTree";
     planning_scene.world.octomap.octomap.data = octomap.data;
@@ -184,7 +214,7 @@ bool pereptionFun::clearSceneCB(hirop_msgs::ClearScene::Request &req,
                       hirop_msgs::ClearScene::Response &res)
 {
     pcl::PointCloud<pcl::PointXYZ> clean_cloud;
-    pcl::io::loadPCDFile<pcl::PointXYZ> ("/home/fshs/catkin_ws/src/hirop_ros/perception_bridge/data/clean.pcd", clean_cloud);
+    pcl::io::loadPCDFile<pcl::PointXYZ> ("/home/de/catkin_ws_v3/src/HIROP_ROS-3.0/perception_bridge/data/clean.pcd", clean_cloud);
 
     octomap::ColorOcTree tree(0.01);
     tree.clear();
@@ -198,9 +228,9 @@ bool pereptionFun::clearSceneCB(hirop_msgs::ClearScene::Request &req,
     static octomap_msgs::Octomap octomap_clean_msg;
     octomap_msgs::binaryMapToMsg(tree, octomap_clean_msg);
 
-    planning_scene.world.octomap.header.frame_id = "world";
+    planning_scene.world.octomap.header.frame_id = cameraFrame;
     planning_scene.world.octomap.header.stamp = ros::Time::now();
-    planning_scene.world.octomap.octomap.header.frame_id = "world";
+    planning_scene.world.octomap.octomap.header.frame_id = cameraFrame;
     planning_scene.world.octomap.octomap.header.stamp = ros::Time::now();
     planning_scene.world.octomap.octomap.binary = true;
     planning_scene.world.octomap.octomap.id = "OcTree";
@@ -304,7 +334,7 @@ void pereptionFun::pointCloudCallBack(const sensor_msgs::PointCloud2::ConstPtr &
 
     havePointCloud = false;
     cameraFrame = msg->header.frame_id;
-    std::cout << "cameraFrame: "<<cameraFrame<<std::endl;
+    std::cout << "cameraFrame: "<< cameraFrame <<std::endl;
 
     pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
     // msg to  PCL2
@@ -319,6 +349,7 @@ void pereptionFun::pointCloudCallBack(const sensor_msgs::PointCloud2::ConstPtr &
 
 
     manager->setInputPCLPoint(*pcl_cloud);
+
 
     delete cloud;
 

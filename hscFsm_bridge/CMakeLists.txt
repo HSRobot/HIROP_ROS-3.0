@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   hirop_msgs
 #  message_generation
   tf
+  tf2
 )
 
 #generate_messages(
@@ -45,6 +46,9 @@ file(GLOB ALL_SOURCE src/*.cpp)
 file(GLOB ALL_APPTEST appTEST/*.cpp)
 list(APPEND ALL_SOURCE ${ALL_FRAMEWORK} ${ALL_APPTEST})
 #message(${ALL_SOURCE})
+
+list(REMOVE_ITEM ALL_SOURCE /home/de/catkin_ws_v3/src/HIROP_ROS-3.0/hscFsm_bridge/appTEST/VoiceCtlRobRosFunc.cpp
+    /home/de/catkin_ws_v3/src/HIROP_ROS-3.0/hscFsm_bridge/appTEST/VoiceCtlRobTask.cpp)
 
 add_executable(${PROJECT_NAME}  ${ALL_SOURCE})
 

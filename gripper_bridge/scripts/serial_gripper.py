@@ -21,9 +21,12 @@ current_gripper_state = False
 def callback(req):
     try:
         if req.data:
+            rospy.loginfo("---------------->open gripper")
             open_client()
         elif not req.data:
+            rospy.loginfo("---------------->close gripper")
             close_client()
+            rospy.Duration(1).sleep()
         return SetBoolResponse(True, "true")
     except:
         pass
@@ -31,7 +34,7 @@ def callback(req):
 if __name__ == '__main__':
     rospy.init_node('gripper_serial')
     rospy.wait_for_service(open_server)
-    move_group = rospy.get_param("~move_group_name", 'arm1')
+    move_group = rospy.get_param("~move_group_name", 'arm')
     gripper_ = move_group + "/gripper_state"
     try:
         s = rospy.Service(gripper_, SetBool, callback)
