@@ -70,6 +70,7 @@ void pereptionFun::initRosTopic()
     loadPCServer = node.advertiseService("/loadPointCloud",&pereptionFun::loadPointCloudCB, this);
     savePCServer = node.advertiseService("/savePointCloud",&pereptionFun::savePointCloudCB, this);
 	updateServer = node.advertiseService("/updatePointCloud",&pereptionFun::updatePointCloudCB, this);
+    transformPoseServer = node.advertiseService("/transformPose", &pereptionFun::transformPoseCB, this);
     moveit_clear_octomap_client = node.serviceClient<std_srvs::Empty>("clear_octomap");
 	lookClient = node.serviceClient<hirop_msgs::LookPointCloud>("/lookPointCloud");
 	clearClient = node.serviceClient<hirop_msgs::ClearScene>("/clearScene");
@@ -383,5 +384,58 @@ bool pereptionFun::rmObjectCB(hirop_msgs::removeObject::Request& req, hirop_msgs
     flag = planningScenePtr->removeObject(req.id);
     rep.result = flag;
     return flag;
+}
+
+bool pereptionFun::transformPoseCB(hirop_msgs::transformFramePose::Request& req, hirop_msgs::transformFramePose::Response& rep)
+{
+    geometry_msgs::PoseStamped target;
+    if(transformFrame(req.sourcePose,target, req.targetFrame))
+    {
+        rep.targetPose = target;
+        rep.isSucceed = true;
+    }
+    else
+        rep.isSucceed = false;
+    return true;
+}
+
+bool pereptionFun::transformFrame(const geometry_msgs::PoseStamped &p, geometry_msgs::PoseStamped &target,const string &frame_id)
+{
+//    geometry_msgs::PoseStamped *target_pose = new geometry_msgs::PoseStamped[1];
+//    geometry_msgs::PoseStamped *source_pose = new geometry_msgs::PoseStamped[1];
+    geometry_msgs::PoseStamped target_pose;
+    geometry_msgs::PoseStamped source_pose;
+
+    tf::TransformListener tf_listener;
+
+    source_pose = p;
+    std::cout << " camera_color_optical_frame: "<< frame_id<<std::endl;
+    for (int i = 0; i < 5; ++i)
+    {
+        try
+        {
+            tf_listener.transformPose(frame_id, source_pose, target_pose);
+            break;
+        }
+        catch (tf::TransformException &ex)
+        {
+            ROS_WARN("transfrom exception : %s", ex.what());
+            ros::Duration(0.5).sleep();
+            continue;
+        }
+    }
+    target = target_pose;
+
+//    delete[] target_pose;
+//    delete[] source_pose;
+
+    if (target.header.frame_id == frame_id)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 /****/

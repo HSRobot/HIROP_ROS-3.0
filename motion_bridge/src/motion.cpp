@@ -139,20 +139,13 @@ int motion::trajectPlan(moveit_msgs::RobotTrajectory &tempTraject, MoveGroup& MG
     robot_trajectory::RobotTrajectory rt(MG.move_group->getCurrentState()->getRobotModel(), MG.groupName);
     rt.setRobotTrajectoryMsg(*MG.move_group->getCurrentState(), tempTraject);
 //    trajectory_processing::IterativeSplineParameterization totg;
-    trajectory_processing::IterativeParabolicTimeParameterization totg;
-    bool sucess = totg.computeTimeStamps(rt, 0.1, 0.1);
-    if(!sucess)
-    {
-        ROS_ERROR_STREAM("spline.computeTimeStamps ERROR ");
-        return -1;
-    }
+
     ROS_INFO_STREAM("spline.computeTimeStamps sucess ");
     moveit::planning_interface::MoveGroupInterface::Plan  plan;
 
-     plan.trajectory_ = tempTraject;
-    rt.getRobotTrajectoryMsg(plan.trajectory_);
+
     moveit::planning_interface::MoveItErrorCode status;
-    if(false)
+    if(sim)
     {
 //        status = MG.move_group->plan(plan);
         moveit_msgs::DisplayTrajectory disp;
@@ -164,18 +157,29 @@ int motion::trajectPlan(moveit_msgs::RobotTrajectory &tempTraject, MoveGroup& MG
 
         pub_rob.publish(tempTraject.joint_trajectory);
     }else{
+//        trajectory_processing::IterativeParabolicTimeParameterization totg;
+//        bool sucess = totg.computeTimeStamps(rt, 0.1, 0.1);
+//        if(!sucess)
+//        {
+//            ROS_ERROR_STREAM("spline.computeTimeStamps ERROR ");
+//            return -1;
+//        }
+
+        plan.trajectory_ = tempTraject;
+        rt.getRobotTrajectoryMsg(plan.trajectory_);
         status = MG.move_group->execute(plan);
-    }
-    if(status != moveit::planning_interface::MoveItErrorCode::SUCCESS)
-    {
-        ROS_ERROR_STREAM("ptr.execute ERROR ");
-        for(int i=0; i<plan.trajectory_.joint_trajectory.points.size(); i++)
+
+        if(status != moveit::planning_interface::MoveItErrorCode::SUCCESS)
         {
-            ROS_ERROR_STREAM(i<< ": " << plan.trajectory_.joint_trajectory.points[i]);
+            ROS_ERROR_STREAM("ptr.execute ERROR ");
+    //        for(int i=0; i<plan.trajectory_.joint_trajectory.points.size(); i++)
+    //        {
+    //            ROS_ERROR_STREAM(i<< ": " << plan.trajectory_.joint_trajectory.points[i]);
+    //        }
+            return -1;
         }
-        return -1;
     }
-    ROS_INFO_STREAM("MOVE SUCCESS");
+    ROS_ERROR_STREAM("MOVE SUCCESS");
     return 0;
 }
 
@@ -384,7 +388,8 @@ bool motion::moveLineCB(hirop_msgs::moveLine::Request &req, hirop_msgs::moveLine
         res.info="此move_group找不到";
         return true;
     }
-    geometry_msgs::PoseStamped SPose = MoveGroupList[robot_num].move_group->getCurrentPose(std::string("link6"));
+    setStartState(*MoveGroupList[robot_num].move_group);
+    geometry_msgs::PoseStamped SPose = MoveGroupList[robot_num].move_group->getCurrentPose();
     SPose.pose.position.x += req.Cartesian_x;
     SPose.pose.position.y += req.Cartesian_y;
     SPose.pose.position.z += req.Cartesian_z;
@@ -617,6 +622,14 @@ void motion::setStartState(moveit::planning_interface::MoveGroupInterface & ptr)
     const robot_state::JointModelGroup* jointGroup = r.getJointModelGroup(ptr.getName());
     std::vector<double> joints = ptr.getCurrentJointValues();
     r.setJointGroupPositions(jointGroup, joints);
+
+//    std::vector<string> jointName = ptr.getJointNames();
+//    r.setJointPositions(ptr.getName(), joints);
+//    for(int i= 0; i < jointName.size();i++)
+//    {
+//        r.setJointPositions(jointName[i], joints[i]);
+//    }
+
     ptr.setStartState(r);
 }
 
@@ -650,17 +663,17 @@ int motion::trajectPrepareLine(const geometry_msgs::Pose &end , MoveGroup& MG, d
 {
     std::vector<string> jointName = MG.move_group->getJointNames();
     moveit_msgs::RobotTrajectory tempTraject;
-    tempTraject.joint_trajectory.joint_names = std::move(jointName);
+    tempTraject.joint_trajectory.joint_names = jointName;
     tempTraject.joint_trajectory.points.clear();
-
-//    geometry_msgs::PoseStamped currentPose = MG.move_group->getCurrentPose();
     vector<geometry_msgs::Pose> LGroup;
 //    LGroup.push_back(currentPose.pose);
 
 
     LGroup.push_back(end);
     MG.move_group->setMaxVelocityScalingFactor(1);
-    *radio = MG.move_group->computeCartesianPath(LGroup, 0.04, 0., tempTraject, false);
+    setStartState(*MG.move_group);
+
+    *radio = MG.move_group->computeCartesianPath(LGroup, 0.04, 0., tempTraject, true);
     if( *radio < 0.6)
     {
         return -2;

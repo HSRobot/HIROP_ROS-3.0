@@ -13,7 +13,7 @@ parameters:
       y: 0.0
       z: 0.0
     placePosture: 
-      DIR_R: 0
+      DIR_R: 0.0
       DIR_P: 0
       DIR_Y: 1.57
     placeOffset: 

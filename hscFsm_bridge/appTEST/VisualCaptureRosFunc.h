@@ -37,6 +37,8 @@
 #include <hirop_msgs/LookPointCloud.h>
 #include <hirop_msgs/UpdatePCL.h>
 
+#include <hirop_msgs/moveLine.h>
+
 
 #include <std_msgs/Bool.h>
 #include <hirop_msgs/setVelocityAccelerated.h>
@@ -68,7 +70,7 @@ public:
     // int detect(stringVisualCaptureRosFunc:: & object_name);
     int detect(string& object_name);
     int RobotGoHome();
-    int RobotGoDetection();
+    int RobotGoDetection(int where = 1);
     int RobotPick(geometry_msgs::PoseStamped & pose);
     int RobotPlace(geometry_msgs::PoseStamped & pose);
     int loadRobotPose(vector<geometry_msgs::PoseStamped> & poses, string fileName);
@@ -80,6 +82,7 @@ public:
 
     bool getPedsDetectionState();
     
+    int cartesianMotionLine(double x, double y, double z);
 
     void StateMonitorInit();
     VC_StateMonitor getStateMonitor();
@@ -108,6 +111,7 @@ private:
     ros::ServiceClient jointMultiClient;
     ros::ServiceClient exeTrajectoryClient;
     ros::ServiceClient stopMotionClient;
+    ros::ServiceClient motionLineClient;
 
     ros::ServiceClient setVAClient;
     ros::ServiceClient setParamClient;
@@ -124,10 +128,15 @@ private:
     //加载点位路径参数
     string HomeFile;
     string DetectionFile;
+    string DetectionFile3;
     string PlaceObjFile;
 
     vector<vector<double> > HomePoses;
-    vector<geometry_msgs::PoseStamped> DetectionPoses;
+    // vector<geometry_msgs::PoseStamped> DetectionPoses;
+    // vector<geometry_msgs::PoseStamped> DetectionPoses3;
+
+    vector<vector<double>> DetectionPoses;
+    vector<vector<double>> DetectionPoses3;
 
     VC_StateMonitor statemonitor;
 

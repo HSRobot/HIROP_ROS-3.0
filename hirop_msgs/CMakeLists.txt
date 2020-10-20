@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   shape_msgs
   moveit_msgs
 )
-
+ 
 file(GLOB MSG_LIST msg/*.msg)
 set(subMsgList "")
 foreach(children ${MSG_LIST})

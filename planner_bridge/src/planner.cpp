@@ -314,7 +314,7 @@ int Planner::singleAxis(std::vector<std::string> axisIndex, std::vector<double> 
     return flag;
 }
 
-int Planner::IK(geometry_msgs::PoseStamped& pose, std::vector<double>& joints)
+int Planner::IK(geometry_msgs::PoseStamped& pose, std::vector<double>& joints, std::string tip)
 {
     int flag = -1;
     moveit::core::RobotStatePtr robot_state = move_group->getCurrentState();
@@ -324,7 +324,8 @@ int Planner::IK(geometry_msgs::PoseStamped& pose, std::vector<double>& joints)
     int cnt = 0;
     while (ros::ok() && cnt < 5)
     {
-        if(robot_state->setFromIK(joint_model_group, pose.pose, attempts, timeout))
+        // if(robot_state->setFromIK(joint_model_group, pose.pose, attempts, timeout))
+        if(robot_state->setFromIK(joint_model_group, pose.pose, tip, attempts, timeout))
         {
             ROS_INFO_STREAM("IK succeed");
             flag = 0;

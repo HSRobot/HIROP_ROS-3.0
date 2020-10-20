@@ -81,7 +81,7 @@ public:
     /**
      * @brief 
     */
-    int IK(geometry_msgs::PoseStamped& pose, std::vector<double>&);
+    int IK(geometry_msgs::PoseStamped& pose, std::vector<double>& joint, std::string tip);
 };
 
 

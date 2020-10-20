@@ -93,6 +93,8 @@ private:
 
     void publishStateMsg(bool status, string behaviour, string message);
 
+    int toDetection(int where);
+
 };
 }
 

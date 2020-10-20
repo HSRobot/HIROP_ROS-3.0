@@ -7,6 +7,7 @@ PlanningBridge::PlanningBridge(ros::NodeHandle& n)
     std::string configFile;
     nh.param("move_group_name", move_group_name, std::string("arm"));
     nh.param("config", configFile, std::string("config2"));
+    nh.param("tip", tip, std::string("link6"));
     planner = new Planner(move_group_name);
     planner->updateParam(configFile);
     singleAxisServer = nh.advertiseService("sigleIncrementAngle", &PlanningBridge::singleAxisCB, this);
@@ -91,14 +92,27 @@ bool PlanningBridge::setPathConstraintsCB(hirop_msgs::updateParam::Request& req,
     return true;
 }
 
+std::vector<double> PlanningBridge::rad2angle(std::vector<double> rad)
+{
+    std::vector<double> angle;
+    for(auto i: rad)
+    {
+        angle.push_back(i/M_PI*180);
+    }
+    return angle;
+}
+
 bool PlanningBridge::IKCB(hirop_msgs::setFromIK::Request& req, hirop_msgs::setFromIK::Response& rep)
 {
     std::vector<double> joints;
     int flag = -1;
-    flag = planner->IK(req.Pose, joints);
+    flag = planner->IK(req.Pose, joints, tip);
     if(flag == 0)
     {
-        rep.joints = joints;
+        if(!req.isAngle)
+            rep.joints = joints;
+        else
+            rep.joints = rad2angle(joints);
         return true;
     }
     return false;
