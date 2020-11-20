@@ -62,6 +62,7 @@ private:
     void init_initing(const std::vector<std::string> &args);
     void init_quiting(const std::vector<std::string> &args);
     void init_starting(const std::vector<std::string> &args);
+    void init_switch(const std::vector<std::string> &args);
 
     void prepare_initing(const std::vector<std::string> &args);
     void prepare_quiting(const std::vector<std::string> &args);

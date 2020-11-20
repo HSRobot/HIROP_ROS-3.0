@@ -8,8 +8,8 @@ region:
   minZ: 0.5
   maxY: 200
   minY: -200
-  maxX: 0.28
-  minX: -0.30
+  maxX: 0.18
+  minX: -0.29
 
 object:
   maxZ: 0

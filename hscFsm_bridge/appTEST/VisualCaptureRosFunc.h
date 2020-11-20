@@ -89,6 +89,7 @@ public:
 
     vector<geometry_msgs::PoseStamped> PickObjPoses;
     vector<geometry_msgs::PoseStamped> PlaceObjPoses;
+    vector<geometry_msgs::PoseStamped> PlaceObjPoses2;
 private:
 
     ros::NodeHandle *Node;
@@ -125,11 +126,7 @@ private:
 
     ros::Publisher shutDownPedsDetectionPub;
 
-    //加载点位路径参数
-    string HomeFile;
-    string DetectionFile;
-    string DetectionFile3;
-    string PlaceObjFile;
+
 
     vector<vector<double> > HomePoses;
     // vector<geometry_msgs::PoseStamped> DetectionPoses;

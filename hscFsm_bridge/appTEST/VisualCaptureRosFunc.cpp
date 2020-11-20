@@ -40,15 +40,24 @@ void VisualCaptureRosFunc::RosInit()
     ObjectArraySub = Node->subscribe<hirop_msgs::ObjectArray>("/object_array", 10, &VisualCaptureRosFunc::objectDetectSub_CallBack, this);
     detectHumanSub = Node->subscribe<std_msgs::Bool>("/people_detection_feedback", 10, &VisualCaptureRosFunc::detectHuman_Callback, this);
 
+    //加载点位路径参数
+    string HomeFile;
+    string DetectionFile;
+    string DetectionFile3;
+    string PlaceObjFile;
+    string PlaceObjFile2;
+
     Node->param("/home", HomeFile, string("homePose"));
     Node->param("/detection2", DetectionFile, string("detectionPose2"));
     Node->param("/detection3", DetectionFile3, string("detectionPose3"));
     Node->param("/place", PlaceObjFile, string("PlaceObjPose"));
+    Node->param("/place", PlaceObjFile2, string("PlaceObjPose2"));
 
     VisualCaptureRosFunc::loadRobotPose(HomePoses, HomeFile);
     VisualCaptureRosFunc::loadRobotPose(DetectionPoses, DetectionFile);
     VisualCaptureRosFunc::loadRobotPose(DetectionPoses3, DetectionFile3);
     VisualCaptureRosFunc::loadRobotPose(PlaceObjPoses, PlaceObjFile);
+    VisualCaptureRosFunc::loadRobotPose(PlaceObjPoses2, PlaceObjFile2);
     isPedsdetetion = false;
 }
 
@@ -190,12 +199,15 @@ bool VisualCaptureRosFunc::transformFrame(geometry_msgs::PoseStamped &p, string 
     }
 
     p = target_pose[0];
-    if(p.pose.position.z >= 1.5)
+    if (p.pose.position.z >= 1.5)
         p.pose.position.z = 1.60;
     else
         p.pose.position.z = 1.34;
-    if(p.pose.position.y < -1.08)
-        p.pose.position.y = -1.05;
+    if (p.pose.position.y < -1.0)
+        p.pose.position.y = -0.95;
+    
+    p.pose.position.x += 0.02;
+    
     p.pose.orientation.x = 0;
     p.pose.orientation.y = 0;
     p.pose.orientation.z = 0;
@@ -270,14 +282,14 @@ int VisualCaptureRosFunc::RobotGoDetection(int where)
     int result = -1;
     switch (where)
     {
-        case 1:
-            // ROS_INFO_STREAM("DetectionPoses" << DetectionPoses);
-            result = movePose(DetectionPoses);
-            break;
-        case 2:
-            // ROS_INFO_STREAM("DetectionPoses3" << DetectionPoses3);
-            result = movePose(DetectionPoses3);
-            break;    
+    case 1:
+        // ROS_INFO_STREAM("DetectionPoses" << DetectionPoses);
+        result = movePose(DetectionPoses);
+        break;
+    case 2:
+        // ROS_INFO_STREAM("DetectionPoses3" << DetectionPoses3);
+        result = movePose(DetectionPoses3);
+        break;
     }
     return result;
 }
@@ -297,7 +309,7 @@ int VisualCaptureRosFunc::RobotPick(geometry_msgs::PoseStamped &pose)
         }
         else
         {
-            if(cartesianMotionLine(0, 0.2, 0) != 0)
+            if (cartesianMotionLine(0, 0.2, 0) != 0)
             {
                 result = -1;
             }
@@ -358,7 +370,7 @@ int VisualCaptureRosFunc::loadRobotPose(vector<geometry_msgs::PoseStamped> &pose
     return result;
 }
 
-int VisualCaptureRosFunc::loadRobotPose(vector<vector<double> > &joints, string fileName)
+int VisualCaptureRosFunc::loadRobotPose(vector<vector<double>> &joints, string fileName)
 {
     hirop_msgs::loadJointsData loadjoint_srv;
     loadjoint_srv.request.uri = "five_finger";
@@ -393,7 +405,7 @@ int VisualCaptureRosFunc::loadRobotPose(vector<vector<double> > &joints, string 
 int VisualCaptureRosFunc::movePose(vector<geometry_msgs::PoseStamped> &poses)
 {
     int result = -1;
-    if(!poses.empty())
+    if (!poses.empty())
     {
         if (CartesianPlanner(poses) == 0)
         {
@@ -411,7 +423,7 @@ int VisualCaptureRosFunc::movePose(vector<geometry_msgs::PoseStamped> &poses)
     return result;
 }
 
-int VisualCaptureRosFunc::movePose(vector<vector<double> > &joints)
+int VisualCaptureRosFunc::movePose(vector<vector<double>> &joints)
 {
 
     int result = -1;
@@ -451,7 +463,7 @@ int VisualCaptureRosFunc::CartesianPlanner(vector<geometry_msgs::PoseStamped> &p
     return result;
 }
 
-int VisualCaptureRosFunc::JointSpacePlanner(vector<vector<double> > &joints)
+int VisualCaptureRosFunc::JointSpacePlanner(vector<vector<double>> &joints)
 {
     int result = 0;
 
@@ -519,16 +531,17 @@ int VisualCaptureRosFunc::motionMulti(moveit_msgs::RobotTrajectory &tra)
         if (dualTra_srv.response.is_success)
         {
             ROS_INFO_STREAM("Move to pose successfully!");
-//            int flag;
-//            cin >> flag;
-//            if(flag)
-//            {
-//                moveit::
-//            }
+            //            int flag;
+            //            cin >> flag;
+            //            if(flag)
+            //            {
+            //                moveit::
+            //            }
         }
         else
         {
             ROS_ERROR("Failed to move to pose!");
+            result = -1;
         }
     }
 
@@ -555,19 +568,24 @@ int VisualCaptureRosFunc::lookPointCloud()
 
 int VisualCaptureRosFunc::creatPedsDetection()
 {
-    pthread_t tid;
-    int ret = pthread_create(&tid, NULL, bringUpPedsDetetion, (void *)this);
-    if (ret == 0)
-    {
-        isPedsdetetion = true;
-        std::cout << "创建运行行人检测成功" << std::endl;
-    }
-    else
-    {
-        isPedsdetetion = false;
-        std::cout << "创建运行行人检测失败" << std::endl;
-    }
-    return ret;
+    system("rosrun hsr_pedsdetection hsr_pedsdetection.sh &");
+    isPedsdetetion = true;
+    // pthread_t tid;
+    // int ret = pthread_create(&tid, NULL, bringUpPedsDetetion, (void *)this);
+    // if (ret == 0)
+    // {
+    //     isPedsdetetion = true;
+    //     std::cout << "创建运行行人检测成功" << std::endl;
+    // }
+    // else
+    // {
+    //     isPedsdetetion = false;
+    //     std::cout << "创建运行行人检测失败" << std::endl;
+    // }
+
+    // ros::Duration(0.5).sleep();
+    //return ret;
+    return 0;
 }
 
 bool VisualCaptureRosFunc::getPedsDetectionState()
@@ -583,9 +601,9 @@ void *VisualCaptureRosFunc::bringUpPedsDetetion(void *__this)
 
 void VisualCaptureRosFunc::shutdownPedsDetection()
 {
-//    std_msgs::Bool msg;
-//    msg.data = false;
-//    shutDownPedsDetectionPub.publish(msg);
+    //    std_msgs::Bool msg;
+    //    msg.data = false;
+    //    shutDownPedsDetectionPub.publish(msg);
     system("rostopic pub -1 /switch_of_people_detect std_msgs/Bool \"data: false\"");
     this->isPedsdetetion = false;
 }
@@ -598,9 +616,9 @@ int VisualCaptureRosFunc::cartesianMotionLine(double x, double y, double z)
     srv.request.Cartesian_y = y;
     srv.request.Cartesian_z = z;
     srv.request.isSim = false;
-    if(motionLineClient.call(srv))
+    if (motionLineClient.call(srv))
     {
-        if(srv.response.is_success)
+        if (srv.response.is_success)
         {
             ROS_INFO("move line SUCCEED");
             return 0;

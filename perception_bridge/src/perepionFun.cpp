@@ -11,6 +11,7 @@
 #include "pcl_conversions/pcl_conversions.h"
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <string>
+// #include <ros/>
 
 
 #include <octomap/octomap.h>
@@ -170,7 +171,7 @@ bool pereptionFun::lookPointCloudCB(hirop_msgs::LookPointCloud::Request &req,
 
     //更新octomap
     tree.updateInnerOccupancy();
-    tree.write("/home/de/catkin_ws_v3/src/HIROP_ROS-3.0/perception_bridge/data/live_octomap.ot");
+    // tree.write("/home/de/catkin_ws_v3/src/HIROP_ROS-3.0/perception_bridge/data/live_octomap.ot");
 
     //转换成octomap_msgs消息格式
     static octomap_msgs::Octomap octomap;
@@ -215,7 +216,10 @@ bool pereptionFun::clearSceneCB(hirop_msgs::ClearScene::Request &req,
                       hirop_msgs::ClearScene::Response &res)
 {
     pcl::PointCloud<pcl::PointXYZ> clean_cloud;
-    pcl::io::loadPCDFile<pcl::PointXYZ> ("/home/de/catkin_ws_v3/src/HIROP_ROS-3.0/perception_bridge/data/clean.pcd", clean_cloud);
+    std::string perception_bridge_path;
+    perception_bridge_path = ros::package::getPath("perception_bridge");
+    perception_bridge_path += "/data/clean.pcd";
+    pcl::io::loadPCDFile<pcl::PointXYZ> (perception_bridge_path, clean_cloud);
 
     octomap::ColorOcTree tree(0.01);
     tree.clear();
@@ -409,6 +413,7 @@ bool pereptionFun::transformFrame(const geometry_msgs::PoseStamped &p, geometry_
     tf::TransformListener tf_listener;
 
     source_pose = p;
+    // std::string frame_id_ = "camera_color_optical_frame";
     std::cout << " camera_color_optical_frame: "<< frame_id<<std::endl;
     for (int i = 0; i < 5; ++i)
     {

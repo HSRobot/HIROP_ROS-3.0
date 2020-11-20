@@ -22,6 +22,7 @@ add_message_files(
 	${subMsgList}
 )
 
+
 file(GLOB SRV_LIST srv/*.srv)
 file(GLOB hsclouddata_LIST srv/hsclouddata/*.srv)
 file(GLOB force_bridge_LIST srv/force_bridge/*.srv)

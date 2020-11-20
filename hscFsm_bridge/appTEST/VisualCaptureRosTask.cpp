@@ -39,6 +39,7 @@ bool VisualCaptureRosTask::registerTaskList()
     auto func_init_initing = bind(&VisualCaptureRosTask::init_initing, this, placeholders::_1);
     auto func_init_quiting = bind(&VisualCaptureRosTask::init_quiting, this, placeholders::_1);
     auto func_init_starting = bind(&VisualCaptureRosTask::init_starting, this, placeholders::_1);
+    auto func_init_switch = bind(&VisualCaptureRosTask::init_switch, this,placeholders::_1);
 
     auto func_prepare_initing = bind(&VisualCaptureRosTask::prepare_initing, this, placeholders::_1);
     auto func_prepare_quiting = bind(&VisualCaptureRosTask::prepare_quiting, this, placeholders::_1);
@@ -70,6 +71,7 @@ setTaskState("error");
         registerTask("init", "initing", func_init_initing);
         registerTask("init", "quiting", func_init_quiting);
         registerTask("init", "starting", func_init_starting);
+        registerTask("init", "switch", func_init_switch);
 
         registerTask("prepare", "initing", func_prepare_initing);
         registerTask("prepare", "quiting", func_prepare_quiting);
@@ -137,6 +139,70 @@ void VisualCaptureRosTask::init_quiting(const std::vector<std::string> &args)
     cout << "VisionCapture状态机已退出init状态" << endl;
 }
 
+void VisualCaptureRosTask::init_switch(const std::vector<std::string> &args)
+{
+    cout << "args[0]----> " << args[0] << endl;
+    int i = std::atoi(args[0].c_str());
+    cout << "into function---->1";
+    geometry_msgs::PoseStamped a;
+    geometry_msgs::PoseStamped b;
+    cout << "into function---->2";
+    switch(i)
+    {
+        case 1:
+            toDetection(1);
+            break;
+        case 2:
+            detect_object = "wangzai1";
+            if (VCRF->detect(detect_object) != 0)
+            {
+                if (toDetection(2) != 0)
+                    return;
+                if (VCRF->detect(detect_object) != 0)
+                {
+                    index_errinfo=7;
+                    isDetecting = false;
+                    return;
+                }
+            }
+            ros::Duration(3).sleep();
+            //先判断坐标是否转换成功
+            a = VCRF->PickObjPoses[0];
+            if (a.header.frame_id != "world"){
+                cout << "坐标转换失败" << endl;
+                index_errinfo=5;
+                isPicking = false;
+                return;
+            }
+            //进行抓取
+            if (VCRF->RobotPick(a) != 0){
+                cout << "抓取失败" << endl;
+                index_errinfo=3;
+                isPicking = false;
+                return;
+            }else{
+                cout << "抓取成功" << endl;
+            }
+            //启动place状态运行标志位
+            b = VCRF->PlaceObjPoses[0];
+            if (VCRF->RobotPlace(b) != 0){
+                cout << "放置失败" << endl;
+                index_errinfo=6;
+                isPlacing = false;
+                return;
+            }else{
+                cout << "放置成功" << endl;
+            }
+            break;
+        case 3:
+            VCRF->RobotGoHome();
+            break;
+        case 4:
+            VCRF->RobotEnable(false);
+            break;
+    }
+}
+
 //prepare状态
 void VisualCaptureRosTask::prepare_initing(const std::vector<std::string> &args)
 {
@@ -188,6 +254,7 @@ void VisualCaptureRosTask::transPrepare2Detection(const std::vector<std::string>
     VisualCaptureRosTask::publishStateMsg(true, "starting", "------prepare_starting------");
     detect_object = args[0];
     setTaskState("look");
+    // setTaskState("detection");
 }
 
 void VisualCaptureRosTask::transPrepare2Exit(const std::vector<std::string> &args)
@@ -236,7 +303,8 @@ void VisualCaptureRosTask::look_initing(const std::vector<std::string> &args)
             setTaskState("error");
     }
 
-    // VCRF->creatPedsDetection();
+    ros::Duration(0.5).sleep();
+    VCRF->creatPedsDetection();
 
     isLooking = false;
 }
@@ -273,11 +341,6 @@ void VisualCaptureRosTask::look_quiting(const std::vector<std::string> &args)
     }
     cout << "VisionCapture状态机已退出look状态" << endl;
 }
-
-
-
-
-
 
 
 //detection状态
@@ -416,11 +479,14 @@ void VisualCaptureRosTask::place_initing(const std::vector<std::string> &args)
     geometry_msgs::PoseStamped b = VCRF->PlaceObjPoses[0];
 
     if (VCRF->RobotPlace(b) != 0){
+        // if(VCRF->RobotPlace(VCRF->PlaceObjPoses2[0]) != 0)
+        // {
         cout << "放置失败" << endl;
         index_errinfo=6;
         setTaskState("error");
         isPlacing = false;
         return;
+        // }
     }else{
         cout << "放置成功" << endl;
     }
