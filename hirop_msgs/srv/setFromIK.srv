@@ -1,3 +1,4 @@
 geometry_msgs/PoseStamped Pose
+bool isAngle
 ---
 float64[] joints

@@ -3,7 +3,7 @@ parameters:
     serialNum: /dev/GripperDriver0
     baudrate: 115200
     speed: 500
-    force: 200
+    force: 500
     size_max: 800
     size_min: 0
     

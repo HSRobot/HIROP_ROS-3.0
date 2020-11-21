@@ -49,6 +49,7 @@ int Hsc3ApiRos::start()
     set_workfarm = n_hsc3.advertiseService("hsc3SetWorkFrame", &Hsc3ApiRos::setWorkFrameCB, this);
     set_iodout = n_hsc3.advertiseService("hsc3SetIODout", &Hsc3ApiRos::setIODoutCB, this);
     getRobotConnStatus = n_hsc3.advertiseService("getRobotConnStatus", &Hsc3ApiRos::getRobotConnStatusCB, this);
+    getRobotErrorFault = n_hsc3.advertiseService("getRobotErrorFaultMsg", &Hsc3ApiRos::getRobotErrorFaultCB, this);
 
     setStartUpProjectSer = n_hsc3.advertiseService("setStartUpProject", &Hsc3ApiRos::setStartUpProject, this);
     setStopProjectSer = n_hsc3.advertiseService("setStopProject", &Hsc3ApiRos::setStopProject, this);
@@ -250,7 +251,14 @@ bool Hsc3ApiRos::getRobotErrorFaultCB(hirop_msgs::robotErrorRequest &req, hirop_
     req;
     uint64_t errCode;
     std::string strReason, strElim;
-    Hsc3::Comm::HMCErrCode code =proSys->queryError(errCode, strReason, strElim);
+    if(!hsc3ReConnect()){
+        return false;
+    }
+    ErrLevel level;
+//    Hsc3::Comm::HMCErrCode getMessage(ErrLevel & level, uint64_t & code, std::string & strMsg, uint32_t ulWaitTime);
+      Hsc3::Comm::HMCErrCode code =proSys->getMessage(level,errCode, strReason, 1000*5);
+
+//    Hsc3::Comm::HMCErrCode code =proSys->queryError(errCode, strReason, strElim);
     if(code >1 ){
         res.isError = false;
         return false;

@@ -1,0 +1,15 @@
+velocityScalingFactor: 0.8
+accelerationScalingFactor: 0.8
+planningTime: 1
+plannerID: NULL
+positionTolerance: 0.00005
+orientationTolorance: 0.00005
+allowReplanning: true
+planningNum: 3
+workSpace:
+  minX: 0
+  minY: 0
+  minZ: 0
+  maxX: 0
+  maxY: 0
+  maxZ: 0

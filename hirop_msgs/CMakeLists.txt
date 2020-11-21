@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   shape_msgs
   moveit_msgs
 )
-
+ 
 file(GLOB MSG_LIST msg/*.msg)
 set(subMsgList "")
 foreach(children ${MSG_LIST})
@@ -22,11 +22,12 @@ add_message_files(
 	${subMsgList}
 )
 
+
 file(GLOB SRV_LIST srv/*.srv)
 file(GLOB hsclouddata_LIST srv/hsclouddata/*.srv)
 file(GLOB force_bridge_LIST srv/force_bridge/*.srv)
-file(GLOB force_bridge_LIST srv/HsFsm/*.srv)
-list(APPEND SRV_LIST ${hsclouddata_LIST} ${force_bridge_LIST})
+file(GLOB HsFsm_LIST srv/HsFsm/*.srv)
+list(APPEND SRV_LIST ${hsclouddata_LIST} ${force_bridge_LIST} ${HsFsm_LIST})
 set(subSrvList "")
 # string(REPLACE "/CMakeLists.txt" "/" childrenRmTxt ${children})
 foreach(children ${SRV_LIST})

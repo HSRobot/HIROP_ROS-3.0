@@ -23,6 +23,8 @@
 #include "hirop_msgs/PubMesh.h"
 #include "hirop_msgs/PubObject.h"
 #include "hirop_msgs/removeObject.h"
+#include "tf/transform_listener.h"
+#include "hirop_msgs/transformFramePose.h"
 /****/
 
 using namespace std;
@@ -47,6 +49,8 @@ public:
                           hirop_msgs::SavePCL::Response &res);
 	bool updatePointCloudCB(hirop_msgs::UpdatePCL::Request &res,
 							hirop_msgs::UpdatePCL::Response &req);
+    bool transformPoseCB(hirop_msgs::transformFramePose::Request& req,
+                            hirop_msgs::transformFramePose::Response& rep);
     void loadLocalParam(const string & path);
     void loadPCD(const string & path);
     void savePCD(const string & path="./");
@@ -57,6 +61,7 @@ private:
     void publishCloud();
     void clearPoint();
     void pointCloudCallBack(const sensor_msgs::PointCloud2::ConstPtr &msg);
+    bool transformFrame(const geometry_msgs::PoseStamped &p, geometry_msgs::PoseStamped &target,const string &frame_id);
 private:
     ros::NodeHandle node;
     ros::Subscriber receivePclCloudSub, pointCloudSub;
@@ -64,6 +69,8 @@ private:
     ros::Publisher publishOctomapPub;
     ros::ServiceServer lookServer, loadPCServer,savePCServer;
     ros::ServiceServer clearServer,updateServer;
+    ros::ServiceServer transformPoseServer;
+    
     ros::ServiceClient moveit_clear_octomap_client, lookClient, clearClient;
 
     /****/

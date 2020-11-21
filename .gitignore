@@ -31,13 +31,11 @@
 *.out
 *.app
 *.user
-<<<<<<< HEAD
+
 build*
-=======
 *build*
->>>>>>> 8b3862308b7f41b4009c14e085214f33f6ef7998
 *zip
-*tar
+*tar*
 *gz
 *vscode
 

@@ -69,6 +69,7 @@ private:
     ros::ServiceServer getRobotConnStatus;
     ros::ServiceServer setStartUpProjectSer;
     ros::ServiceServer setStopProjectSer;
+    ros::ServiceServer getRobotErrorFault;
 
     std::string robotIp_;
     int robotPort_;

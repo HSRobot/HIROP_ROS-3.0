@@ -1,5 +1,6 @@
 #pragma once
 #include <std_msgs/Empty.h>
+#include <math.h>
 #include "hirop_msgs/addPose.h"
 #include "hirop_msgs/addJointPose.h"
 #include "hirop_msgs/updateParam.h"
@@ -20,6 +21,8 @@ private:
     bool IKCB(hirop_msgs::setFromIK::Request& req, hirop_msgs::setFromIK::Response& rep);
     void clearPathConstraintsCB(const std_msgs::EmptyConstPtr& msg);
 
+    std::vector<double> rad2angle(std::vector<double> rad);
+
     // 单轴增量
     ros::ServiceServer singleAxisServer;
     // 规划笛卡尔坐标
@@ -39,6 +42,8 @@ private:
     ros::NodeHandle& nh;
 
     Planner* planner;
+
+    std::string tip;
 
 
 public:

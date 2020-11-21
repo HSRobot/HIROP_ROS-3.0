@@ -2,16 +2,16 @@ parameters:
     pickConfig: 
       direct_pick: false
       dist_scale: 1
-      pre_dist_min: 0.01
-      pre_dist_max: 0.1
-      pre_vect_x: 1
-      pre_vect_y: 0
+      pre_dist_min: 0.1
+      pre_dist_max: 0.3
+      pre_vect_x: 0
+      pre_vect_y: -1
       pre_vect_z: 0
-      back_dist_min: 0.01
-      back_dist_max: 0.1
-      back_vect_x: -1
+      back_dist_min: 0.05
+      back_dist_max: 0.08
+      back_vect_x: 0
       back_vect_y: 0
-      back_vect_z: 0
+      back_vect_z: 1
       Roll: []
       Pitch: []
       Yaw: []
@@ -19,19 +19,16 @@ parameters:
     placeConfig: 
       direct_place: false
       dist_scale: 1
-      pre_dist_min: 0.01
-      pre_dist_max: 0.05
-      pre_vect_x: 0
-      pre_vect_y: 1
+      pre_dist_min: 0.03
+      pre_dist_max: 0.1
+      pre_vect_x: 1
+      pre_vect_y: 0
       pre_vect_z: 0
-      back_dist_min: 0.01
-      back_dist_max: 0.05
+      back_dist_min: 0.05
+      back_dist_max: 0.1
       back_vect_x: 0
-      back_vect_y: -1
-      back_vect_z: 0
+      back_vect_y: 0
+      back_vect_z: 1
       Roll: []
       Pitch: []
       Yaw: []
-    
-
-

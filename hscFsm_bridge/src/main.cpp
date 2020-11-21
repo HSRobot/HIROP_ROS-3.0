@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
 {
     ros::init(argc, argv, "hscfsm_bridge");
     ros::NodeHandle n;
-    ros::AsyncSpinner as(1);
+    ros::AsyncSpinner as(4);
     as.start();
 
     std::shared_ptr<HsFsmBridge> bridge = std::make_shared<HsFsmBridge>(n);
