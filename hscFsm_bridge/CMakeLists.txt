@@ -43,7 +43,7 @@ include_directories(
 #file(GLOB USER_LIBS_PATH ./src/*.cpp)
 file(GLOB ALL_FRAMEWORK  framework/*.cpp framework/loader/*.cpp)
 file(GLOB ALL_BRIDGE_SOURCE src/*.cpp)
-list(REMOVE_ITEM ALL_BRIDGE_SOURCE /home/fshs/catkin_ws/src/HIROP_ROS-3.0/hscFsm_bridge/src/test.cpp)
+#list(REMOVE_ITEM ALL_BRIDGE_SOURCE /home/fshs/catkin_ws/src/HIROP_ROS-3.0/hscFsm_bridge/src/test.cpp)
 file(GLOB ALL_APPTEST appTEST/*.cpp)
 list(APPEND ALL_SOURCE ${ALL_FRAMEWORK} ${ALL_APPTEST})
 #message(${ALL_SOURCE})

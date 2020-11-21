@@ -5,7 +5,7 @@
 
 #include "hirop_msgs/SetGenActuator.h"
 #include "hirop_msgs/ShowObject.h"
-#include "hirop_msgs/RemoveObject.h"
+
 #include "hirop_msgs/Pick.h"
 #include "hirop_msgs/Place.h"
 #include "hirop_msgs/listActuator.h"
