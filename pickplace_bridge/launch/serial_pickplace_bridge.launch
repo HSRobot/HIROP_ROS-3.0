@@ -12,9 +12,13 @@
   </node>
 
   <!-- launch-prefix="gnome-terminal -e" -->
-  <arg name="move_group"  default="arm" />
+  <arg name="move_group"  default="arm0" />
+  <arg name="openGripper1"  default="/UR52/openGripper" />
+  <arg name="closeGripper1"  default="/UR52/closeGripper" />
   <node name="serial_gripper" pkg="gripper_bridge" type="serial_gripper.py"  output="screen">
     <param name="move_group" type="str" value="$(arg move_group)" />
+    <param name="open_server" type="str" value="$(arg openGripper1)" />
+    <param name="closeGripper" type="str" value="$(arg closeGripper1)" />
   </node>	
 
 </launch>

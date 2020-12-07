@@ -35,6 +35,8 @@ if __name__ == '__main__':
     rospy.init_node('gripper_serial')
     rospy.wait_for_service(open_server)
     move_group = rospy.get_param("~move_group_name", 'arm')
+    open_server = rospy.get_param("~open_server", 'openGripper')
+    close_server = rospy.get_param("~close_server", 'closeGripper')
     gripper_ = move_group + "/gripper_state"
     try:
         s = rospy.Service(gripper_, SetBool, callback)

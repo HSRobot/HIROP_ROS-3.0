@@ -41,6 +41,7 @@ add_service_files(
   FILES
   ${subSrvList}
  # ${hsclouddata_SRV_LIST}
+	startTaskCmd.srv 
 )
 generate_messages(
   DEPENDENCIES

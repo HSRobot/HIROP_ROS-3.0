@@ -1,6 +1,6 @@
 parameters:
   moveitConfig:
-    name: arm0
+    name: arm1
   gripperConfig:
     name: gripper
     openGripper: [0, 0, 0, 0]
